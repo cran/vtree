@@ -1,0 +1,712 @@
+---
+title: "Introduction to vtree 0.1.4"
+author: "Nick Barrowman"
+date: '`r strftime(Sys.time(),format="%d-%b-%Y at %H:%M")`'
+output:
+#word_document:
+#  reference_docx: R:/CRU Epibiostat/Rmarkdown knitr/templateNarrowMargins.docx
+  rmarkdown::html_vignette:
+    fig_caption: yes
+    toc: yes
+    toc_depth: '6'
+vignette: >
+  %\VignetteIndexEntry{Introduction to vtree}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, eval=FALSE, echo=FALSE}
+#
+# For future development.
+#
+For a vignette of examples, see [vtree_examples](vtree_examples.html).
+```
+
+```{r, echo=FALSE}
+library(vtree)
+```
+
+```{r}
+PNGdir <- tempdir()
+```
+
+
+# Introduction
+
+`vtree` is a tool for drawing *variable trees*.
+Variable trees display information about nested subsets of a data frame.
+This turns out to be useful in a wide variety of situations.
+
+The figure below is a variable tree based on a data frame called `FakeData`
+(which represents `r nrow(FakeData)` fictitious patients)
+in which subsets defined by `Sex` (M or F) are shown within subsets defined by disease `Severity` (Mild, Moderate, Severe, or NA). 
+
+```{r, echo=FALSE}
+o_example1 <- vtree(FakeData,"Severity Sex",horiz=FALSE)
+grVizToPNG(o_example1,folder=PNGdir,width=1000)
+filepath <- file.path(PNGdir,"o_example1.png")
+```
+
+![](`r filepath`){ height=2in }
+
+The variable tree consists of *nodes* connected by arrows.
+At the top of the diagram above, the *root* node of the tree contains all 46 patients.
+The nodes in the next level of the tree (the *children* of the root node)
+represent patients with different values of `Severity`.
+The nodes in the next level of the tree represents males and females within each value of `Severity`.
+
+By default, if a variable has any missing values there will be a missing-value node for that variable.
+For example, 6 patients had missing `Severity`.
+Thus, unlike with some visualization methods, missing values are shown.
+Furthermore, like any node, a missing-value node can have children.
+For example, of the 6 patients with missing `Severity`,
+3 are are female and 3 are male.
+Thus the full missing-value structure of the specified variables in the data frame is displayed.
+
+When there are two variables,
+a variable tree is equivalent to a two-way contingency table with either row or column percentages, 
+depending on the ordering of the variables.
+In the tree above, `Sex` is shown within levels of `Severity`.
+This corresponds to the following contingency table,
+in which percentages within each column add to 100%. 
+(These are known as *column percentages*.)
+
+\     | Mild      | Moderate | Severe   | NA
+------|-----------|----------|----------|---------
+**F** | 11 (58%)  | 11 (69%) | 2 (40%)  | 3 (50%)
+**M** | 8 (42%)   | 5 (31%)  | 3 (60%)  | 3 (50%)
+
+Because variable trees visually depict subsetting,
+they can be easier to understand than contingency tables,
+especially when there are more than two variables.
+
+## Uses of vtree
+Variable trees can represent:
+
+* multi-way contingency tables
+
+* calculation of sensitivity and specificity
+
+* calculation of positive and negative predictive value
+
+* Venn diagrams (when variables are binary)
+
+* inclusion/exclusion criteria
+
+* longitudinal events
+
+
+## Features of vtree
+`vtree` is designed to be quick and easy to use,
+so that it is convenient for exploratory data analysis,
+but also flexible enough that it can be used to prepare publication-ready figures.
+
+To make variable trees easy to interpret, 
+`vtree` supports custom labeling of variables and nodes .
+One challenge is that as variables are added, variable trees can grow quickly.
+For this reason, `vtree` includes tools for *pruning* trees.
+Another feature that enhances the value of variable trees
+is the ability to display summary statistics for other variables in the nodes.
+For example, the mean of a continuous variable, such as age, can be displayed.
+
+To summarize, `vtree` implements several additional features:
+
+* flexible pruning to focus on key parts of the tree
+
+* display of summary statistics for other variables (e.g. continuous variables) in each node
+
+* renaming of variables and nodes
+
+* customized text formating
+
+ 
+## Technical overview (optional)
+The root node of the variable tree represents the entire data frame.
+There is a child of the root node for each observed value of the first variable that was specified.
+Each of these child nodes represents a subset of the data frame with a specific value of the variable, and is labeled with the number of observations in the subset and the corresponding percentage of the number of observations in the entire data frame.
+In general, the *n*^th^ level of the variable tree corresponds to the *n*^th^ variable specified.
+Apart from the root node,
+each node in the variable tree represents the subset of its parent defined by a specific observed value of the variable at that level of the tree,
+and is labeled with the number of observations in that subset and the corresponding percentage of the number of observations in its parent node.
+
+Note that a node always represents at least one observation. 
+Unlike a contingency table, 
+which can have empty cells, 
+a variable tree cannot have any empty nodes.
+
+# The `vtree` function
+
+The basic syntax is: `vtree(data_frame,variable_names)`.
+Numerous additional parameters can be supplied.
+For example, by default `vtree` produces a horizontal tree,
+but sometimes a vertical tree is preferable.
+When `horiz=FALSE` is specified, `vtree` generates a vertical tree.
+
+
+## Mini tutorial
+
+Here is a simple example using just one variable:
+
+```{r, eval=FALSE}
+vtree(FakeData,"Severity",horiz=FALSE)
+```
+
+```{r, echo=FALSE}
+example1 <- vtree(FakeData,"Severity",horiz=FALSE)
+grVizToPNG(example1,folder=PNGdir,width=1000)
+filepath <- file.path(PNGdir,"example1.png")
+```
+
+![](`r filepath`){ height=1.5in }
+
+
+
+Now here's an example with two variables, `Severity` and `Sex`. 
+The variables are specified with a space between them in a single character string like this: `"Severity Sex"`.
+Alternatively the variables can be specified like this: `c("Severity","Sex")`.
+This takes a little more typing but is necessary if there are spaces in any of the variable names.
+
+```{r, eval=FALSE}
+vtree(FakeData,"Severity Sex",horiz=FALSE)
+```
+
+```{r, echo=FALSE}
+example1two <- vtree(FakeData,"Severity Sex",horiz=FALSE)
+grVizToPNG(example1two,folder=PNGdir,width=1000)
+filepath <- file.path(PNGdir,"example1two.png")
+```
+
+![](`r filepath`){ height=2in }
+
+
+The top node represents the entire data frame.
+Each subsequent level of the tree corresponds to a different variable (first `Severity`, then `Sex`).
+Within each level, each node represents the subset of its parent node where the variable has a specific value.
+Displayed in each node is the number of observations and the conditional percentage
+(i.e. the number of observations in the node expressed as a percentage of the observations in its parent node).
+
+
+## Percentages
+
+Let's return to the variable tree for `Severity`.
+Note that it is equivalent to a one-way table of frequencies and percentages.
+Missing values are always shown, but do not have associated percentages.
+The percentages shown are "valid percentages",
+i.e. the denominator is the total number of *non-missing* values.
+
+```{r, echo=FALSE}
+example1again <- vtree(FakeData,"Severity",horiz=FALSE)
+grVizToPNG(example1again,folder=PNGdir,width=1000)
+filepath <- file.path(PNGdir,"example1again.png")
+```
+
+![](`r filepath`){ height=1.5in }
+ 
+
+Alternatively, if you specify `vp=FALSE`,
+the denominator will be the total number of observations,
+including any missing values.
+In this case, a percentage is shown in each node, including nodes for missing values.
+
+```{r, eval=FALSE}
+vtree(FakeData,"Severity",vp=FALSE,horiz=FALSE)
+```
+
+```{r, echo=FALSE}
+example1alt <- vtree(FakeData,"Severity",vp=FALSE,horiz=FALSE)
+grVizToPNG(example1alt,folder=PNGdir,width=1000)
+filepath <- file.path(PNGdir,"example1alt.png")
+```
+
+![](`r filepath`){ height=1.5in }
+
+
+## Hiding variable names
+
+By default, `vtree` shows the variable names next to the corresponding levels of the tree.
+These can be removed by specifying `showlevels=FALSE`. 
+
+
+## Text wrapping
+
+By default, `vtree` wraps text whenever a space occurs after at least 20 characters.
+This can be adjusted, for example, to 10 characters, by specifying `splitwidth=10`.
+
+
+## Pruning using the `prune` parameter
+
+Suppose you don't want the tree to show individuals whose disease is Mild or NA.
+You can use the `prune` parameter to remove those nodes,
+and all of their descendants.
+
+```{r, eval=FALSE}
+vtree(FakeData,"Severity Sex",prune=list("Severity"=c("Mild","NA")))
+```
+
+```{r, echo=FALSE}
+example3 <- vtree(FakeData,"Severity Sex",prune=list("Severity"=c("Mild","NA")))
+grVizToPNG(example3,folder=PNGdir,width=1000)
+filepath <- file.path(PNGdir,"example3.png")
+```
+
+![](`r filepath`){ height=4in }
+
+
+
+Pruning is useful when the tree gets too big, or when you are not interested in parts of the tree.
+In practice, as variables are added,
+variable trees quickly get too large to display without some kind of pruning.
+
+## Pruning using the `prunebelow` parameter
+
+The `prune` parameter completely eliminates nodes (along with their descendants). 
+A disadvantage of this is that the frequencies shown in child nodes do not add up to the frequency shown in the parent node.
+For example in the variable tree above,
+of a total of 46 patients, 
+16 have moderate disease and 5 have severe disease. 
+One might wonder what happened to the other 25 patients.
+
+An alternative is to prune *below* the specified nodes, i.e. show the nodes but not any of their descendants.
+
+```{r, eval=FALSE}
+vtree(FakeData,"Severity Sex",prunebelow=list("Severity"=c("Mild","NA")))
+```
+
+```{r, echo=FALSE}
+example3below <- vtree(FakeData,"Severity Sex",prunebelow=list("Severity"=c("Mild","NA")))
+grVizToPNG(example3below,folder=PNGdir,width=1000)
+filepath <- file.path(PNGdir,"example3below.png")
+```
+
+![](`r filepath`){ height=4in }
+
+## Pruning using the `keep` and `follow` parameters
+
+There are two other ways to prune variable trees.
+The `keep` parameter is used to specify nodes that should *not* be pruned
+(all other nodes at that level of the tree will be pruned).
+The `follow` parameter is like the `keep` parameter except that no nodes at that level of the tree will be pruned. 
+Instead, those nodes that are not "followed" will be pruned at the next level.
+
+
+## Renaming nodes using the `labelnode` parameter
+
+By default, `vtree` names nodes (except for the root node)
+using the values of the variable in question.
+(If the variable is a factor, the levels of the factor are used).
+Sometimes it is convenient to instead specify custom labels for nodes.
+You can use the `labelnode` argument to relabel the values.
+For example, you might want to use "Male" and "Female" instead of "M" and "F".
+The `labelnode` argument argument is specified as a list whose element names are variable names.
+You specify the relabeling like this: `"New label"="Old label"`.
+For example:
+ 
+```{r, eval=FALSE}
+vtree(FakeData,"Severity Sex",labelnode=list(Sex=(c("Male"="M","Female"="F"))),horiz=FALSE)
+```
+
+```{r, echo=FALSE}
+example4 <- vtree(FakeData,"Severity Sex",labelnode=list(Sex=(c("Male"="M","Female"="F"))),horiz=FALSE)
+grVizToPNG(example4,folder=PNGdir,width=1000)
+filepath <- file.path(PNGdir,"example4.png")
+```
+
+![](`r filepath`){ height=2in }
+
+
+## Renaming variables using the `labelvar` parameter
+ 
+It's often useful to specify a more informative label in place of the variable name.
+The `labelvar` argument is used to specify these labels.
+As an example, suppose `Severity` represents severity on day 1.
+
+```{r, eval=FALSE}
+vtree(FakeData,"Severity Group",labelvar=c("Severity"="Severity on day 1"),horiz=FALSE)
+```
+
+```{r, echo=FALSE}
+varlabels1 <- vtree(FakeData,"Severity Group",labelvar=c("Severity"="Severity on day 1"),horiz=FALSE)
+```
+
+```{r, echo=FALSE}
+grVizToPNG(varlabels1,folder=PNGdir,width=1000)
+filepath <- file.path(PNGdir,"varlabels1.png")
+```
+
+![](`r filepath`){ height=2in }
+
+
+
+
+## Fancy formatting of labels using HTML-style codes
+
+**NOTE: The section after this one shows how to use an easy alternative to HTML-style codes.**
+
+`Graphviz` (the open source graph visualization software that provides the basis for `vtree`)
+allows fancy formatting of text using HTML-style codes.
+In particular,
+
+* `<BR/>` means insert a line break
+* `<BR ALIGN='LEFT'/>` means make the preceding line left-justified and insert a line break
+* `<I> ... </I>` means display text in italics
+* `<B> ... </B>` means display text in bold
+* `<SUP> ... </SUP>` means display text in superscript, 
+  but note that the font size does not change
+* `<SUB> ... </SUB>` means display text in subscript
+  but again note that the font size does not change
+* `<FONT POINT-SIZE='10'> ... </FONT>` means set font to 10 point
+* `<FONT FACE='Times-Roman'> ... </FONT>` means set font to Times-Roman
+* `<FONT COLOR='red'> ... </FONT>` means set font to red
+
+See <https://www.graphviz.org/doc/info/shapes.html#html> for more details.
+
+**Note**: To use these HTML-style codes, it is necessary to specify `HTMLtext=TRUE` as in the example below:
+
+```{r, eval=FALSE}
+vtree(FakeData,"Severity",HTMLtext=TRUE,horiz=FALSE,
+  labelnode=list("Severity"=c(
+    "<B>Mild</B><BR ALIGN='LEFT'/>"="Mild",
+    "<I>Moderate</I><BR/>"="Moderate",
+    "Severe<FONT POINT-SIZE='10'><SUP>Superscript</SUP></FONT><BR/>"="Severe",
+    "NA<FONT POINT-SIZE='10'><SUB>Superscript</SUB></FONT><BR/>"="NA")),
+  title="<FONT FACE='Times-Roman' COLOR='red' POINT-SIZE='20'>Whole group</FONT><BR/>")
+```
+
+```{r, echo=FALSE}
+fancy <- vtree(FakeData,"Severity",HTMLtext=TRUE,horiz=FALSE,
+  labelnode=list("Severity"=c(
+    "<B>Mild</B><BR ALIGN='LEFT'/>"="Mild",
+    "<I>Moderate</I><BR/>"="Moderate",
+    "Severe<FONT POINT-SIZE='10'><SUP>Superscript</SUP></FONT><BR/>"="Severe",
+    "NA<FONT POINT-SIZE='10'><SUB>Superscript</SUB></FONT><BR/>"="NA")),
+  title="<FONT FACE='Times-Roman' COLOR='red' POINT-SIZE='20'>Whole group</FONT><BR/>")
+grVizToPNG(fancy,folder=PNGdir,width=1000)
+filepath <- file.path(PNGdir,"fancy.png")
+```
+
+![](`r filepath`){ height=1.5in }
+
+
+## Fancy formatting of labels using markdown-style codes
+
+The `vtree` package implements an easier way to perform some fancy formatting tasks.
+
+* `\n` means insert a line break
+* `\n*l` means make the preceding line left-justified and insert a line break 
+* `*...*` means display text in italics
+* `**...**` means display text in bold
+* `^...^` means display text in superscript (using 10 point font)
+* `~...~` means display text in subscript (using 10 point font)
+* `%%red ...%%` means display text in red (or whichever color is specified)
+
+```{r, eval=FALSE}
+vtree(FakeData,"Severity",horiz=FALSE,
+  labelnode=list("Severity"=c(
+    "**Mild**"="Mild",
+    "*Moderate*"="Moderate",
+    "Severe^Superscript^"="Severe",
+    "NA~subscript~"="NA")),
+  title="%%red Whole group%%")
+```
+
+```{r, echo=FALSE}
+fancy <- vtree(FakeData,"Severity",horiz=FALSE,
+  labelnode=list("Severity"=c(
+    "**Mild**"="Mild",
+    "*Moderate*"="Moderate",
+    "Severe^Superscript^"="Severe",
+    "NA~subscript~"="NA")),
+  title="%%red Whole group%%")
+grVizToPNG(fancy,folder=PNGdir,width=1000)
+filepath <- file.path(PNGdir,"fancy.png")
+```
+
+![](`r filepath`){ height=1.5in }
+
+
+
+## Checking for missing values with the `check.is.na` parameter
+
+The `check.is.na` argument is used to produce a tree that only shows whether
+the specified variables are missing or not.
+Whereas the variables that `vtree` uses to build variable trees are usually categorical,
+this is a situation where non-categorical variables can be used,
+because their missingness is represented, not their actual values.
+
+```{r, eval=FALSE}
+vtree(FakeData,"Severity Age",check.is.na=TRUE)
+```
+
+```{r, echo=FALSE}
+mv1 <- vtree(FakeData,"Severity Age",check.is.na=TRUE)
+```
+
+```{r, echo=FALSE}
+grVizToPNG(mv1,folder=PNGdir,width=1000)
+filepath <- file.path(PNGdir,"mv1.png")
+```
+
+![](`r filepath`){ height=3in }
+
+
+
+## Adding text to nodes using the `text` parameter
+
+The argument `text` lets you add text to nodes.
+A list is specified whose element names are variable names,
+and text is specified as: `"Label"="Text to add"`.
+
+```{r,eval=FALSE}
+vtree(FakeData,"Severity",horiz=FALSE,
+  text=list("Severity"=c("Mild"="Includes first-time visits")))
+```
+
+```{r, echo=FALSE}
+t_example1 <- vtree(FakeData,"Severity",text=list("Severity"=c("Mild"="\nIncludes first-time visits")),horiz=FALSE)
+```
+
+```{r, echo=FALSE}
+grVizToPNG(t_example1,folder=PNGdir,width=1000)
+filepath <- file.path(PNGdir,"t_example1.png")
+```
+
+![](`r filepath`){ height=2in }
+
+
+
+## Displaying summary statistics using the `summary` parameter
+
+### A simple example
+
+The `summary` argument can be used to specify summary statistics to display in each node.
+For example,
+
+```{r,eval=FALSE}
+vtree(FakeData,"Severity",summary="Score %mean%",horiz=FALSE)
+```
+
+```{r, echo=FALSE}
+ss_example1 <- vtree(FakeData,"Severity",summary="Score %mean%",horiz=FALSE)
+```
+
+```{r, echo=FALSE}
+grVizToPNG(ss_example1,folder=PNGdir,width=1000)
+filepath <- file.path(PNGdir,"ss_example1.png")
+```
+
+![](`r filepath`){ height=2in }
+
+
+In each node the mean value of the `Score` variable is displayed.
+The `summary` argument (`"Score %mean%"`)
+starts with the name of the variable to be summarized (`Score`),
+and is followed by a code (`%mean%`) indicating that we want to see the mean.
+
+The following codes are defined:
+
+* `%mean%` mean 
+* `%SD%` standard deviation 
+* `%min%` minimum
+* `%max%` maximum
+* `%pX%` Xth percentile (e.g. `p50` means the 50th percentile)
+* `%median%` median, i.e. p50
+* `%IQR%` IQR, i.e. p25, p75
+* `%npct%` n (%). By default "valid percentages" are used. 
+Any missing values are also reported.
+* `%list%` list of the individual values
+* `%mv%` the number of missing values
+* `%v%` the name of the variable
+* `%noroot%` flag: Do not show summary in the root node.
+* `%leafonly%` flag: Only show summary in leaf nodes.
+
+The `summary` argument can use any number of these codes, 
+mixed with text and formatting codes.
+
+### More than one variable
+
+It is also possible to summarize more than one variable by specifying a vector of character strings,
+each one referring to a different variable.
+
+For example,
+
+```{r,eval=FALSE}
+vtree(FakeData,"Severity",horiz=FALSE,showlevels=FALSE,
+  summary=c(
+    "Score \nScore\n mean(SD) %mean%(%SD%)",
+    "Pre \n\nPre\n range %min%, %max%"))
+```
+
+```{r, echo=FALSE}
+ss_example2 <- vtree(FakeData,"Severity",horiz=FALSE,showlevels=FALSE,
+  summary=c(
+    "Score \nScore\n mean(SD) %mean%(%SD%)",
+    "Pre \n\nPre\n range %min%, %max%"))
+```
+
+```{r, echo=FALSE}
+grVizToPNG(ss_example2,folder=PNGdir,width=1000)
+filepath <- file.path(PNGdir,"ss_example2.png")
+```
+
+![](`r filepath`){ height=2.7in }
+
+
+
+### The %npct% code 
+
+Consider the following variable tree.
+Note that `Viral` represents whether a patient has (`TRUE`) or does not have (`FALSE`) a viral infection.
+
+```{r, eval=FALSE}
+vtree(FakeData,"Severity Viral",horiz=FALSE,showlevels=FALSE)
+```
+
+```{r, echo=FALSE}
+di_example1 <- vtree(FakeData,"Severity Viral",horiz=FALSE,showlevels=FALSE)
+```
+
+```{r, echo=FALSE}
+grVizToPNG(di_example1,folder=PNGdir,width=1000)
+filepath <- file.path(PNGdir,"di_example1.png")
+```
+
+![](`r filepath`){ width=7in }
+
+
+The tree above has lots of nodes.
+If what we're looking for is simply
+the number and percentage of patients with viral infection in each severity group,
+the `%npct%` code can be used.
+This results in a simpler tree:
+
+```{r, eval=FALSE}
+vtree(FakeData,"Severity",summary="Viral \nViral %npct%",horiz=FALSE,showlevels=FALSE)
+```
+
+```{r, echo=FALSE}
+di_example2 <- vtree(FakeData,"Severity",summary="Viral \nViral %npct%",
+  horiz=FALSE,showlevels=FALSE)
+```
+
+```{r, echo=FALSE}
+grVizToPNG(di_example2,folder=PNGdir,width=1000)
+filepath <- file.path(PNGdir,"di_example2.png")
+```
+
+![](`r filepath`){ width=7in }
+
+
+Note that in each node,
+"mv" indicates the number of missing values (if any). 
+
+
+### The %list% code 
+
+It is sometimes convenient to see individual values of a variable in each node. 
+To do this, use the `%list%` code. 
+It may also be convenient to *not* show the individual values in the root node.
+To do this, use the `%noroot%` code.
+For example,
+
+```{r,eval=FALSE}
+vtree(FakeData,"Severity",summary="id \nid = %list% %noroot%",horiz=FALSE)
+```
+
+```{r, echo=FALSE}
+ss_example3 <- vtree(FakeData,"Severity",summary="id \nid = %list% %noroot%",horiz=FALSE)
+```
+
+```{r, echo=FALSE}
+grVizToPNG(ss_example3,folder=PNGdir,width=1000)
+filepath <- file.path(PNGdir,"ss_example3.png")
+```
+
+![](`r filepath`){ height=2in }
+
+
+
+## A single vector that is not part of the data frame
+
+When you want to produce a flowchart for a single variable stored in a vector
+(i.e. to generate simple frequencies for that variable),
+there is a simplified way to call `vtree`.
+Rather than specifying a data frame and a variable name, simply pass in the vector.
+
+```{r, eval=FALSE}
+vtree(c("A","A","A","B","C"),horiz=FALSE)
+```
+
+```{r, echo=FALSE}
+exampleSingleVector <- vtree(c("A","A","A","B","C"),horiz=FALSE)
+grVizToPNG(exampleSingleVector,folder=PNGdir,width=1000)
+filepath <- file.path(PNGdir,"exampleSingleVector.png")
+```
+
+![](`r filepath`){ height=1.5in }
+
+
+
+
+## Examining the DOT script generated by `vtree`
+
+Specifying `getscript=TRUE` lets you capture the DOT script representing a flowchart.
+Here is an example:
+
+```{r, comment=""}
+dotscript <- vtree(FakeData,"Severity",getscript=TRUE)
+cat(dotscript)
+```
+
+
+
+# The `grVizToPNG` function: Saving trees to PNG files
+
+`vtree` uses the `DiagrammeR` package (which in turn is built on the open source graph visualization software,  `Graphviz`).
+
+Diagrams created using `vtree` will automatically render to HTML
+(for example, in the RStudio Viewer pane, or from R in a browser window).
+But to include them in Microsoft Word documents,
+you need to create a PNG file. 
+The function `grVizToPNG` does this.
+
+For example, if you saved the output of a call to `vtree` to an object called `example1`,
+you could use `grVizToPNG` to create a PNG file called `example1.png` like this:
+
+```{r, eval=FALSE}
+grVizToPNG(example1)
+```
+
+Notes:
+
+* The name of the graphics file (`example1.png`) is automatically derived from the name of the object (`example1`).
+
+* By default the PNG file will be 3000 pixels wide.
+(If you want it, say 1000 pixels wide, you can specify this argument: `width=1000`.) 
+
+* Before creating the PNG file, `grVizToPNG` first creates an SVG file. But Microsoft Word cannot handle SVG files, which is why a PNG file must be created.
+
+* To keep things tidy, you can also specify a folder (say a subfolder of the working directory) where the PNG and SVG files will be stored. To do this, specify this argument: `folder=MyFolder`.
+
+
+## Embedding a PNG image into R Markdown output
+
+Suppose you are using R Markdown,
+and wish to embed the PNG image generated by calling `grVizToPNG` into your output
+(for example a Word document).
+If you want the image scaled to, say, 3 inches tall, add this code inline (i.e. *not* in a code chunk):
+
+```{r, highlight=FALSE, eval=FALSE}
+![](example1.png){ height=3in }
+```
+
+If, in your call to `grVizToPNG`,
+you specified that graphics files should be stored in a subfolder called `MyFolder`,
+use the following code:
+
+```{r, highlight=FALSE, eval=FALSE}
+![](MyFolder/example1.png){ height=3in }
+```
+
+
+
+
