@@ -1,212 +1,221 @@
-## ---- eval=FALSE, echo=FALSE---------------------------------------------
-#  #
-#  # For future development.
-#  #
-#  For a vignette of examples, see [vtree_examples](vtree_examples.html).
-
 ## ---- echo=FALSE---------------------------------------------------------
 library(vtree)
 
-## ------------------------------------------------------------------------
+## ---- echo=FALSE---------------------------------------------------------
 PNGdir <- tempdir()
 
 ## ---- echo=FALSE---------------------------------------------------------
-o_example1 <- vtree(FakeData,"Severity Sex",horiz=FALSE)
-grVizToPNG(o_example1,folder=PNGdir,width=1000)
-filepath <- file.path(PNGdir,"o_example1.png")
+v1 <- vtree(FakeData,"Severity Sex",showlegend=FALSE,horiz=FALSE,width=600,height=200)
+filepath <- grVizToPNG(v1,folder=PNGdir,width=1000)
 
 ## ---- eval=FALSE---------------------------------------------------------
-#  vtree(FakeData,"Severity",horiz=FALSE)
+#  vtree(df,"v1 v2")
 
-## ---- echo=FALSE---------------------------------------------------------
-example1 <- vtree(FakeData,"Severity",horiz=FALSE)
-grVizToPNG(example1,folder=PNGdir,width=1000)
-filepath <- file.path(PNGdir,"example1.png")
+## ----eval=FALSE----------------------------------------------------------
+#  vtree(FakeData,"Severity")
 
-## ---- eval=FALSE---------------------------------------------------------
-#  vtree(FakeData,"Severity Sex",horiz=FALSE)
-
-## ---- echo=FALSE---------------------------------------------------------
-example1two <- vtree(FakeData,"Severity Sex",horiz=FALSE)
-grVizToPNG(example1two,folder=PNGdir,width=1000)
-filepath <- file.path(PNGdir,"example1two.png")
-
-## ---- echo=FALSE---------------------------------------------------------
-example1again <- vtree(FakeData,"Severity",horiz=FALSE)
-grVizToPNG(example1again,folder=PNGdir,width=1000)
-filepath <- file.path(PNGdir,"example1again.png")
+## ----echo=FALSE----------------------------------------------------------
+v2 <- vtree(FakeData,"Severity",width=250,height=250)
+filepath <- grVizToPNG(v2,folder=PNGdir,width=1000)
 
 ## ---- eval=FALSE---------------------------------------------------------
-#  vtree(FakeData,"Severity",vp=FALSE,horiz=FALSE)
+#  vtree(FakeData,"Severity Sex",horiz=FALSE,plain=TRUE)
 
 ## ---- echo=FALSE---------------------------------------------------------
-example1alt <- vtree(FakeData,"Severity",vp=FALSE,horiz=FALSE)
-grVizToPNG(example1alt,folder=PNGdir,width=1000)
-filepath <- file.path(PNGdir,"example1alt.png")
+v3 <- vtree(FakeData,"Severity Sex",horiz=FALSE,plain=TRUE,width=550,height=200)
+filepath <- grVizToPNG(v3,folder=PNGdir,width=1000)
 
-## ---- eval=FALSE---------------------------------------------------------
-#  vtree(FakeData,"Severity Sex",prune=list("Severity"=c("Mild","NA")))
+## ----eval=FALSE----------------------------------------------------------
+#  vtree(FakeData,"Severity Sex",showlegend=TRUE,shownodelabels=FALSE)
 
-## ---- echo=FALSE---------------------------------------------------------
-example3 <- vtree(FakeData,"Severity Sex",prune=list("Severity"=c("Mild","NA")))
-grVizToPNG(example3,folder=PNGdir,width=1000)
-filepath <- file.path(PNGdir,"example3.png")
+## ----echo=FALSE----------------------------------------------------------
+v4 <- vtree(FakeData,"Severity Sex",showlegend=TRUE,shownodelabels=FALSE,width=550,height=450)
+filepath <- grVizToPNG(v4,folder=PNGdir,width=1000)
 
-## ---- eval=FALSE---------------------------------------------------------
-#  vtree(FakeData,"Severity Sex",prunebelow=list("Severity"=c("Mild","NA")))
+## ----eval=FALSE----------------------------------------------------------
+#  vtree(FakeData,"Severity Sex Viral",sameline=TRUE)
 
-## ---- echo=FALSE---------------------------------------------------------
-example3below <- vtree(FakeData,"Severity Sex",prunebelow=list("Severity"=c("Mild","NA")))
-grVizToPNG(example3below,folder=PNGdir,width=1000)
-filepath <- file.path(PNGdir,"example3below.png")
+## ----eval=FALSE----------------------------------------------------------
+#  vtree(FakeData,"Severity Sex",prune=list(Severity=c("Mild","Moderate")))
 
-## ---- eval=FALSE---------------------------------------------------------
-#  vtree(FakeData,"Severity Sex",labelnode=list(Sex=(c("Male"="M","Female"="F"))),horiz=FALSE)
+## ----echo=FALSE----------------------------------------------------------
+v6 <- vtree(FakeData,"Severity Sex",prune=list(Severity=c("Mild","Moderate")),
+  width=500,height=300)
+filepath <- grVizToPNG(v6,folder=PNGdir,width=1000)
 
-## ---- echo=FALSE---------------------------------------------------------
-example4 <- vtree(FakeData,"Severity Sex",labelnode=list(Sex=(c("Male"="M","Female"="F"))),horiz=FALSE)
-grVizToPNG(example4,folder=PNGdir,width=1000)
-filepath <- file.path(PNGdir,"example4.png")
+## ----eval=FALSE----------------------------------------------------------
+#  vtree(FakeData,"Severity Sex",prunebelow=list(Severity=c("Mild","Moderate")))
 
-## ---- eval=FALSE---------------------------------------------------------
-#  vtree(FakeData,"Severity Group",labelvar=c("Severity"="Severity on day 1"),horiz=FALSE)
+## ----echo=FALSE----------------------------------------------------------
+v7 <- vtree(FakeData,"Severity Sex",prunebelow=list(Severity=c("Mild","Moderate")),
+  width=500,height=300)
+filepath <- grVizToPNG(v7,folder=PNGdir,width=1000)
 
-## ---- echo=FALSE---------------------------------------------------------
-varlabels1 <- vtree(FakeData,"Severity Group",labelvar=c("Severity"="Severity on day 1"),horiz=FALSE)
+## ----eval=FALSE----------------------------------------------------------
+#  vtree(FakeData,"Severity Sex",horiz=FALSE,
+#    labelvar=c(Severity="Severity on day 1"),labelnode=list(Sex=c(Male="M",Female="F")))
 
-## ---- echo=FALSE---------------------------------------------------------
-grVizToPNG(varlabels1,folder=PNGdir,width=1000)
-filepath <- file.path(PNGdir,"varlabels1.png")
-
-## ---- eval=FALSE---------------------------------------------------------
-#  vtree(FakeData,"Severity",HTMLtext=TRUE,horiz=FALSE,
-#    labelnode=list("Severity"=c(
-#      "<B>Mild</B><BR ALIGN='LEFT'/>"="Mild",
-#      "<I>Moderate</I><BR/>"="Moderate",
-#      "Severe<FONT POINT-SIZE='10'><SUP>Superscript</SUP></FONT><BR/>"="Severe",
-#      "NA<FONT POINT-SIZE='10'><SUB>Superscript</SUB></FONT><BR/>"="NA")),
-#    title="<FONT FACE='Times-Roman' COLOR='red' POINT-SIZE='20'>Whole group</FONT><BR/>")
-
-## ---- echo=FALSE---------------------------------------------------------
-fancy <- vtree(FakeData,"Severity",HTMLtext=TRUE,horiz=FALSE,
-  labelnode=list("Severity"=c(
-    "<B>Mild</B><BR ALIGN='LEFT'/>"="Mild",
-    "<I>Moderate</I><BR/>"="Moderate",
-    "Severe<FONT POINT-SIZE='10'><SUP>Superscript</SUP></FONT><BR/>"="Severe",
-    "NA<FONT POINT-SIZE='10'><SUB>Superscript</SUB></FONT><BR/>"="NA")),
-  title="<FONT FACE='Times-Roman' COLOR='red' POINT-SIZE='20'>Whole group</FONT><BR/>")
-grVizToPNG(fancy,folder=PNGdir,width=1000)
-filepath <- file.path(PNGdir,"fancy.png")
-
-## ---- eval=FALSE---------------------------------------------------------
-#  vtree(FakeData,"Severity",horiz=FALSE,
-#    labelnode=list("Severity"=c(
-#      "**Mild**"="Mild",
-#      "*Moderate*"="Moderate",
-#      "Severe^Superscript^"="Severe",
-#      "NA~subscript~"="NA")),
-#    title="%%red Whole group%%")
-
-## ---- echo=FALSE---------------------------------------------------------
-fancy <- vtree(FakeData,"Severity",horiz=FALSE,
-  labelnode=list("Severity"=c(
-    "**Mild**"="Mild",
-    "*Moderate*"="Moderate",
-    "Severe^Superscript^"="Severe",
-    "NA~subscript~"="NA")),
-  title="%%red Whole group%%")
-grVizToPNG(fancy,folder=PNGdir,width=1000)
-filepath <- file.path(PNGdir,"fancy.png")
-
-## ---- eval=FALSE---------------------------------------------------------
-#  vtree(FakeData,"Severity Age",check.is.na=TRUE)
-
-## ---- echo=FALSE---------------------------------------------------------
-mv1 <- vtree(FakeData,"Severity Age",check.is.na=TRUE)
-
-## ---- echo=FALSE---------------------------------------------------------
-grVizToPNG(mv1,folder=PNGdir,width=1000)
-filepath <- file.path(PNGdir,"mv1.png")
+## ----echo=FALSE----------------------------------------------------------
+v8 <- vtree(FakeData,"Severity Sex",horiz=FALSE,width=700,height=250,
+  labelvar=c(Severity="Severity on day 1"),
+  labelnode=list(Sex=c(Male="M",Female="F")))
+filepath <- grVizToPNG(v8,folder=PNGdir,width=1000)
 
 ## ----eval=FALSE----------------------------------------------------------
 #  vtree(FakeData,"Severity",horiz=FALSE,
-#    text=list("Severity"=c("Mild"="Includes first-time visits")))
+#    text=list(Severity=c(Mild="*Includes first-time visits*")))
 
-## ---- echo=FALSE---------------------------------------------------------
-t_example1 <- vtree(FakeData,"Severity",text=list("Severity"=c("Mild"="\nIncludes first-time visits")),horiz=FALSE)
-
-## ---- echo=FALSE---------------------------------------------------------
-grVizToPNG(t_example1,folder=PNGdir,width=1000)
-filepath <- file.path(PNGdir,"t_example1.png")
+## ----echo=FALSE----------------------------------------------------------
+v9 <- vtree(FakeData,"Severity",horiz=FALSE,
+  text=list(Severity=c(Mild="*Includes first-time visits*")),
+  width=450,height=150)
+filepath <- grVizToPNG(v9,folder=PNGdir,width=1000)
 
 ## ----eval=FALSE----------------------------------------------------------
 #  vtree(FakeData,"Severity",summary="Score %mean%",horiz=FALSE)
 
-## ---- echo=FALSE---------------------------------------------------------
-ss_example1 <- vtree(FakeData,"Severity",summary="Score %mean%",horiz=FALSE)
-
-## ---- echo=FALSE---------------------------------------------------------
-grVizToPNG(ss_example1,folder=PNGdir,width=1000)
-filepath <- file.path(PNGdir,"ss_example1.png")
+## ----echo=FALSE----------------------------------------------------------
+v10 <- vtree(FakeData,"Severity",summary="Score %mean%",horiz=FALSE,
+  width=450,height=150)
+filepath <- grVizToPNG(v10,folder=PNGdir,width=1000)
 
 ## ----eval=FALSE----------------------------------------------------------
-#  vtree(FakeData,"Severity",horiz=FALSE,showlevels=FALSE,
+#  vtree(FakeData,"Severity",horiz=FALSE,showvarnames=FALSE,
 #    summary=c(
-#      "Score \nScore\n mean(SD) %mean%(%SD%)",
-#      "Pre \n\nPre\n range %min%, %max%"))
+#      "Score \nScore: mean (SD)\n %mean% (%SD%)",
+#      "Pre \n\nPre: range\n %min%, %max%"))
 
-## ---- echo=FALSE---------------------------------------------------------
-ss_example2 <- vtree(FakeData,"Severity",horiz=FALSE,showlevels=FALSE,
+## ----echo=FALSE----------------------------------------------------------
+v11 <- vtree(FakeData,"Severity",horiz=FALSE,showvarnames=FALSE,
   summary=c(
-    "Score \nScore\n mean(SD) %mean%(%SD%)",
-    "Pre \n\nPre\n range %min%, %max%"))
-
-## ---- echo=FALSE---------------------------------------------------------
-grVizToPNG(ss_example2,folder=PNGdir,width=1000)
-filepath <- file.path(PNGdir,"ss_example2.png")
-
-## ---- eval=FALSE---------------------------------------------------------
-#  vtree(FakeData,"Severity Viral",horiz=FALSE,showlevels=FALSE)
-
-## ---- echo=FALSE---------------------------------------------------------
-di_example1 <- vtree(FakeData,"Severity Viral",horiz=FALSE,showlevels=FALSE)
-
-## ---- echo=FALSE---------------------------------------------------------
-grVizToPNG(di_example1,folder=PNGdir,width=1000)
-filepath <- file.path(PNGdir,"di_example1.png")
-
-## ---- eval=FALSE---------------------------------------------------------
-#  vtree(FakeData,"Severity",summary="Viral \nViral %npct%",horiz=FALSE,showlevels=FALSE)
-
-## ---- echo=FALSE---------------------------------------------------------
-di_example2 <- vtree(FakeData,"Severity",summary="Viral \nViral %npct%",
-  horiz=FALSE,showlevels=FALSE)
-
-## ---- echo=FALSE---------------------------------------------------------
-grVizToPNG(di_example2,folder=PNGdir,width=1000)
-filepath <- file.path(PNGdir,"di_example2.png")
+    "Score \nScore: mean (SD)\n %mean% (%SD%)",
+    "Pre \n\nPre: range\n %min%, %max%"),
+  width=650,height=350)
+filepath <- grVizToPNG(v11,folder=PNGdir,width=1000)
 
 ## ----eval=FALSE----------------------------------------------------------
-#  vtree(FakeData,"Severity",summary="id \nid = %list% %noroot%",horiz=FALSE)
+#  vtree(FakeData,"Severity",summary="Viral \nViral %npct%",horiz=FALSE,showvarnames=FALSE)
 
-## ---- echo=FALSE---------------------------------------------------------
-ss_example3 <- vtree(FakeData,"Severity",summary="id \nid = %list% %noroot%",horiz=FALSE)
+## ----echo=FALSE----------------------------------------------------------
+v12 <- vtree(FakeData,"Severity",summary="Viral \nViral %npct%",horiz=FALSE,showvarnames=FALSE,
+  width=650,height=200)
+filepath <- grVizToPNG(v12,folder=PNGdir,width=1000)
 
-## ---- echo=FALSE---------------------------------------------------------
-grVizToPNG(ss_example3,folder=PNGdir,width=1000)
-filepath <- file.path(PNGdir,"ss_example3.png")
+## ----eval=FALSE----------------------------------------------------------
+#  vtree(FakeData,"Severity",summary="id \nid = %list% %node=Severity% %trunc=40%",
+#    horiz=FALSE,showvarnames=FALSE)
 
-## ---- eval=FALSE---------------------------------------------------------
-#  vtree(c("A","A","A","B","C"),horiz=FALSE)
-
-## ---- echo=FALSE---------------------------------------------------------
-exampleSingleVector <- vtree(c("A","A","A","B","C"),horiz=FALSE)
-grVizToPNG(exampleSingleVector,folder=PNGdir,width=1000)
-filepath <- file.path(PNGdir,"exampleSingleVector.png")
+## ----echo=FALSE----------------------------------------------------------
+v13 <- vtree(FakeData,"Severity",summary="id \nid = %list% %node=Severity% %trunc=40%",
+  horiz=FALSE,showvarnames=FALSE,width=650,height=200)
+filepath <- grVizToPNG(v13,folder=PNGdir,width=1000)
 
 ## ---- comment=""---------------------------------------------------------
 dotscript <- vtree(FakeData,"Severity",getscript=TRUE)
 cat(dotscript)
+
+## ---- eval=FALSE---------------------------------------------------------
+#  vtree(FakeData,"Ind1 Ind2 Ind3 Ind4",Venn=TRUE)
+
+## ---- echo=FALSE---------------------------------------------------------
+v21 <- vtree(FakeData,"Ind1 Ind2 Ind3 Ind4",Venn=TRUE,width=650,height=650)
+filepath <- grVizToPNG(v21,folder=PNGdir,width=1000)
+
+## ---- eval=FALSE---------------------------------------------------------
+#  vtree(FakeData,"Ind1 Ind2 Ind3 Ind4",Venn=TRUE)
+
+## ---- echo=FALSE---------------------------------------------------------
+v22 <- vtree(FakeData,"Ind1 Ind2 Ind3 Ind4",Venn=TRUE,showpct=TRUE,showlegend=TRUE,
+  width=650,height=650)
+filepath <- grVizToPNG(v22,folder=PNGdir,width=1000)
+
+## ----eval=FALSE----------------------------------------------------------
+#  sequence <- with(FakeData,paste(Ind1,Ind2,Ind3,Ind4))
+
+## ----echo=FALSE----------------------------------------------------------
+sequence <- with(FakeData,paste(Ind1,Ind2,Ind3,Ind4,sep="|"))
+
+## ----eval=FALSE----------------------------------------------------------
+#  vtree(FakeData,"Ind1 Ind2 Ind3 Ind4",Venn=TRUE,seq=TRUE,
+#    palette=c(Ind1=1,Ind2=2,Ind3=3,Ind4=4))
+
+## ----echo=FALSE----------------------------------------------------------
+v23 <- vtree(FakeData,"Ind1 Ind2 Ind3 Ind4",Venn=TRUE,seq=TRUE,
+  palette=c(Ind1=1,Ind2=2,Ind3=3,Ind4=4))
+filepath <- grVizToPNG(v23,folder=PNGdir,width=1000)
+
+## ----eval=FALSE----------------------------------------------------------
+#  vtree(FakeData,"Severity Age Pre Post",check.is.na=TRUE)
+
+## ----echo=FALSE----------------------------------------------------------
+v24 <- vtree(FakeData,"Severity Age Pre Post",check.is.na=TRUE,
+  width=700,height=370)
+filepath <- grVizToPNG(v24,folder=PNGdir,width=1000)
+
+## ----eval=FALSE----------------------------------------------------------
+#  vtree(FakeData,"Severity Age Pre Post",check.is.na=TRUE,seq=TRUE,
+#    palette=c(Severity=1,Age=2,Pre=3,Post=4))
+
+## ----echo=FALSE----------------------------------------------------------
+v25 <- vtree(FakeData,"Severity Age Pre Post",check.is.na=TRUE,seq=TRUE,
+  palette=c(Severity=1,Age=2,Pre=3,Post=4))
+filepath <- grVizToPNG(v25,folder=PNGdir,width=1000)
+
+## ------------------------------------------------------------------------
+FakeRCT
+
+## ----eval=FALSE----------------------------------------------------------
+#  vtree(FakeRCT,"eligible randomized group followup analyzed",plain=TRUE,
+#    keep=list(eligible="Eligible",randomized="Randomized",followup="Followed up"),
+#    horiz=FALSE,showvarnames=FALSE,title="Assessed for eligibility")
+
+## ----echo=FALSE----------------------------------------------------------
+v26 <- vtree(FakeRCT,"eligible randomized group followup analyzed",plain=TRUE,width=230,height=500,
+  keep=list(eligible="Eligible",randomized="Randomized",followup="Followed up"),
+  horiz=FALSE,showvarnames=FALSE,title="Assessed for eligibility")
+filepath <- grVizToPNG(v26,folder=PNGdir,width=1000)
+
+## ---- eval=FALSE, echo=FALSE---------------------------------------------
+#  IneligibleReasons <- paste0(
+#    "Not meeting inclusion criteria (n=",sum(FakeRCT$eligible=="Ineligible")-sum(FakeRCT$declined),")\n",
+#    "Declined to participate (n= ",sum(FakeRCT$declined),")\n")
+#  
+#  AllocatedA <- paste0(
+#    "Did not receive allocated intervention (n=",
+#    sum(!FakeRCT[FakeRCT$eligible=="Eligible" & FakeRCT$randomized=="Randomized" & FakeRCT$group=="A",]$received),")")
+#  
+#  LostB <- paste0(
+#    "Lost to follow-up (n=",
+#    sum(FakeRCT[FakeRCT$eligible=="Eligible" & FakeRCT$randomized=="Randomized" & FakeRCT$group=="B",]$lost),")")
+#  
+#  #   text=list(eligible=c("Ineligible"=IneligibleReasons),group=c("A"=AllocatedA),followup=c("Followed up"=LostB)),
+
+## ----eval=FALSE----------------------------------------------------------
+#  v7 <- vtree(FakeRCT,"eligible randomized group followup analyzed",plain=TRUE,
+#    follow=list(eligible="Eligible",randomized="Randomized",followup="Followed up"),
+#    horiz=FALSE,showvarnames=FALSE,title="Assessed for eligibility")
+
+## ---- echo=FALSE---------------------------------------------------------
+v27 <- vtree(FakeRCT,"eligible randomized group followup analyzed",plain=TRUE,width=400,height=500,
+  follow=list(eligible="Eligible",randomized="Randomized",followup="Followed up"),
+  horiz=FALSE,showvarnames=FALSE,title="Assessed for eligibility")
+filepath <- grVizToPNG(v27,folder=PNGdir,width=1000)
+
+## ---- eval=FALSE---------------------------------------------------------
+#  vtree(FakeRCT,"eligible randomized group followup analyzed",plain=TRUE,
+#    follow=list(eligible="Eligible",randomized="Randomized",followup="Followed up"),
+#    horiz=FALSE,showvarnames=FALSE,title="Assessed for eligibility",
+#    summary="id \nid: %list% %noroot%")
+
+## ---- echo=FALSE---------------------------------------------------------
+v28 <- vtree(FakeRCT,"eligible randomized group followup analyzed",plain=TRUE,width=500,height=600,
+  follow=list(eligible="Eligible",randomized="Randomized",followup="Followed up"),
+  horiz=FALSE,showvarnames=FALSE,title="Assessed for eligibility",
+  summary="id \nid: %list% %noroot%")
+filepath <- grVizToPNG(v28,folder=PNGdir,width=1000)
+
+## ---- eval=FALSE---------------------------------------------------------
+#  example1 <- vtree(FakeData,"Severity Sex")
 
 ## ---- eval=FALSE---------------------------------------------------------
 #  grVizToPNG(example1)

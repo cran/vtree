@@ -13,7 +13,7 @@ the columns represent variables of possible clinical relevance.
   \item{Severity}{Factor representing severity of condition: Mild, Moderate, or Severe}
   \item{Sex}{Factor: M or F}
   \item{Male}{Integer: Sex coded as 1=M, 0=F}
-  \item{Age}{Integer: Age in years, continous}
+  \item{Age}{Integer: Age in years, continuous}
   \item{Score}{Integer: Score on a test}
   \item{Category}{Factor: single, double, or triple}
   \item{Pre}{Numeric: initial measurement}

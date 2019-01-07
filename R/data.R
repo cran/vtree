@@ -12,7 +12,7 @@
 #'   \item{Severity}{Factor representing severity of condition: Mild, Moderate, or Severe}
 #'   \item{Sex}{Factor: M or F}
 #'   \item{Male}{Integer: Sex coded as 1=M, 0=F}
-#'   \item{Age}{Integer: Age in years, continous}
+#'   \item{Age}{Integer: Age in years, continuous}
 #'   \item{Score}{Integer: Score on a test}
 #'   \item{Category}{Factor: single, double, or triple}
 #'   \item{Pre}{Numeric: initial measurement}
@@ -28,3 +28,21 @@
 #'
 #' }
 "FakeData"
+
+#' Fake Randomized Controlled Trial (RCT) Data
+#'
+#' A dataset consisting of made-up RCT data.
+#'
+#' @format A small data frame in which the rows represent (imaginary) patients and
+#' the columns represent variables of possible clinical relevance.
+#'
+#' \describe{
+#'   \item{id}{String: Patient ID number}
+#'   \item{eligible}{Factor: Eligible or Ineligible}
+#'   \item{randomized}{Factor: Randomized or Not randomized}
+#'   \item{group}{Factor: A or B}
+#'   \item{followup}{Factor: Followed up or Not followed up}
+#'   \item{analyzed}{Factor: Analyzed or Not analyzed}
+#'
+#' }
+"FakeRCT"

@@ -4,14 +4,19 @@
 \alias{grVizToPNG}
 \title{grVizToPNG}
 \usage{
-grVizToPNG(g, width = 3000, folder = ".")
+grVizToPNG(g, width = NULL, height = NULL, folder = ".")
 }
 \arguments{
 \item{g}{an object produced by the grViz function from the DiagrammmeR package}
 
-\item{width}{the pixel width of the bitmap}
+\item{width}{the width in pixels of the bitmap}
+
+\item{height}{the height in pixels of the bitmap}
 
 \item{folder}{path to folder where the PNG file should stored}
+}
+\value{
+Returns the full path of the PNG file.
 }
 \description{
 \code{grVizToPNG} Export a grViz object into a PNG file.
