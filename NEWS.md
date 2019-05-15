@@ -1,3 +1,57 @@
+# vtree 2.0.0
+
+## Changes
+
+* `check.is.na` now  uses `pattern=TRUE` by default.
+
+* Changed the meaning of the `%node%` summary code,
+which had previously (and confusingly!) been used to specify the *variable* 
+in whose nodes summary information should be shown.
+Now `%node=n%` specifies node `n` and `%var=v%` specifies variable `v`.
+  
+* Additional text produced by `text` or `ttext` or `summary`
+now starts on the *same line* as the number of observations and percentage.
+In order to put this text on a new line, it must begin with `\n`.
+
+* When `seq=TRUE` the first-level nodes are ordered from least frequent sequence to most frequent sequence.
+(The same applies for the new `pattern` parameter.)
+
+* Extensive revisions to the vignette.
+
+## New features
+
+* `pattern` parameter for unordered sequences of variables
+
+* `ptable` parameter to generate pattern tables
+
+* Variable specification modifiers: `stem:` for REDCap checkboxes, `is.na:`,
+`variable=value`, `variable<value`, `variable>value`, `tri:`
+
+* `choicechecklist` parameter: When REDCap checklists are specified using the `stem:` syntax, 
+automatically extract the names of choices and use them as variable names.
+
+* `%pct%` summary code to show percentage (not frequency)
+
+* `%listlines%` summary code to separate items with a new line (unlike %list% which uses commas).
+
+* Summary variable specification modifiers:
+`variable=value`, `variable<value`, `variable>value`
+
+* `tlabelnode` parameter: targeted node labels
+
+* `ttext` parameter: targeted text
+
+* New function `crosstabToCases` to convert crosstabulated data to a data frame of cases
+
+* `runsummary` parameter to control which nodes show summaries depending on node contents
+
+* `retain` parameter to specify additional variables that need to be available to execute the functions in runsummary
+
+* `varminwidth`, `varminheight` parameters to control node sizes for specified variables
+
+* `varlabelloc` parameter to control vertical justification for nodes of specified variables
+
+
 # vtree 1.0.0 
 
 This is a major release that incorporates several new features.
