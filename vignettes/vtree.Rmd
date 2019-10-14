@@ -1,5 +1,5 @@
 ---
-title: "Introduction to vtree 2.0.0"
+title: "Introduction to vtree 3.0.0"
 author: "Nick Barrowman"
 date: '`r strftime(Sys.time(),format="%d-%b-%Y at %H:%M")`'
 output:
@@ -19,66 +19,93 @@ library(vtree)
 options(width=90)
 ```
 
-```{r, echo=FALSE}
-PNGdir <- tempdir()
-```
 
 # Introduction
 
+`vtree` is a flexible tool for generating *variable trees* &mdash;
+diagrams that display information about nested subsets of a data frame.
+Given simple specifications,
+`vtree` produces these diagrams and automatically labels them with counts,
+percentages, and other summaries.
+With `vtree`, you can:
+
+* explore a data set interactively, and
+
+* produce customized figures for reports and publications.
+
+## Two examples
+
 *Subsets* play an important role in almost any data analysis.
 Imagine a data set of countries,
-with variables named `population`, `continent`, `landlocked`,
-and a variety of other variables representing economic and political characteristics.
+with variables named `population`, `continent`, and `landlocked`.
 We might wish to examine subsets of the data set based on the `continent` variable.
 Within each of these subsets,
 we might wish to examine *nested* subsets based on the `population` variable,
 for example, countries with populations under 30 million and over 30 million.
 We might continue to a third level of nesting based on the `landlocked` variable.
+`vtree` provides a general solution to the problem of calculating nested subsets
+and displaying information about them.
 Nested subsets help us to answer questions like the following:
 *Among African countries with a population over 30 million, what percentage are landlocked?*
 
+The variable tree below answers this question:
+
+```{r, echo=FALSE}
+df <- build.data.frame(
+  c("continent","population","landlocked"),
+  list("Africa","Over 30 million","landlocked",2),
+  list("Africa","Over 30 million","not landlocked",12),
+  list("Africa","Under 30 million","landlocked",14),
+  list("Africa","Under 30 million","not landlocked",26))
+```
+
+`r vtree(df,"continent population landlocked",showroot=FALSE,pxwidth=1000)`
+
 Even in simple situations like this,
 it can be a chore to keep track of nested subsets and to calculate percentages.
-And as the number of subsetting variables increases,
+But it's often even more tedious&mdash;and there are two reasons why. 
+First, the presence of missing values makes it harder to determine denominators.
+Second, as the number of variables increases,
 the number of nested subsets grows rapidly.
-When there are missing values in the data set,
-the task becomes even more complicated.
-For these reasons, it is best not to perform nested subsetting by hand.
+In spite of these difficulties,
+people often calculate nested subsets by hand 
+(along with percentages and other summaries).
+Not only is this tiresome work, it is extremely error prone.
 
-Nested subsets arise in many situations.
-Consider, for example, flow diagrams for clinical studies.
-In a typical study, 
-participants are a subset of
-eligible patients who in turn are a subset of 
-patients who were assessed.
-Because mistakes inevitably arise during manual calculation and transcription,
-it is not uncommon for flow diagrams in published studies to contain errors.
+Nested subsets arise in all kinds of situations.
+Consider, for example, flow diagrams for clinical studies,
+such as the following rudimentary
+[CONSORT](http://www.consort-statement.org) diagram,
+which is also a variable tree.
+
+`r 
+vtree(FakeRCT,"eligible randomized group followup",plain=TRUE,
+  keep=list(eligible="Eligible",randomized="Randomized",followup="Followed up"),
+  horiz=FALSE,showvarnames=FALSE,title="Assessed for eligibility",
+  width=230,height=500,pxwidth=500,imageheight="4.5in")
+`
+
+Because manual calculation and transcription are error-prone,
+mistakes in published flow diagrams are all too common.
 And although the errors that make it to publication are often small,
-they can occasionally be disastrous.
+they can sometimes be disastrous.
 
-A solution to the problem of calculating nested subsets
-and displaying information about them is presented here.
-The idea is to represent nested subsets of a data set
-(where the subsets are defined by specific variables in the data set),
-using a tree structure, which we call a *variable tree*.
-`vtree` is a flexible tool for calculating and drawing variable trees.
-It can be used to explore a data set,
-to construct figures for reports and publications,
-and to double-check code to ensure that subsetting has been performed correctly.
-
+Note that at the end of this vignette, there is a collection of [examples using R datasets](#RdatasetExamples) that you can try.
 
 ## Basic features of a variable tree
 
-The examples that follow use a data set of `r nrow(FakeData)` fictitious patients called `FakeData`.
-Based on this data set, the variable tree below depicts subsets defined by `Sex` (M or F)
-nested within subsets defined by disease `Severity` (Mild, Moderate, Severe, or NA).
-Later we'll see how variable trees with more than two variables are particularly useful.
+The examples that follow use a data set called `FakeData` which represents
+`r nrow(FakeData)` fictitious patients.
+The variable tree below depicts subsets defined by `Sex` (M or F)
+nested within subsets defined by disease `Severity`
+(Mild, Moderate, Severe, or NA).
+Although this example&mdash;and many subsequent ones&mdash;use just two variables,
+variable trees are especially useful with three or more variables.
 
-```{r, echo=FALSE}
-v1 <- vtree(FakeData,"Severity Sex",showlegend=FALSE,horiz=FALSE,width=600,height=200)
-filepath <- grVizToPNG(v1,folder=PNGdir,width=800)
+```{r, echo=FALSE, results="asis"}
+cat(vtree(FakeData,"Severity Sex",showlegend=FALSE,horiz=FALSE,
+  width=600,height=200,pxwidth=1000,imageheight="2.2in"))
 ```
-![](`r filepath`){ height=2.2in }
 
 A variable tree consists of *nodes* connected by arrows.
 At the top of the diagram above, the *root* node of the tree contains all 46 patients.
@@ -88,8 +115,8 @@ Note that this highlights one difference between variable trees
 and some other kinds of trees:
 at each level of a variable tree, regardless of the branch,
 the nodes represent values of the same variable.
-In contrast, consider *decision trees*, which can have
-splits on different variables at the same level.
+(*Decision trees*, in contrast,
+can have splits on different variables at the same level.)
  
 Continuing with the variable tree above,
 the nodes immediately below the root represent values of `Severity` and
@@ -102,15 +129,14 @@ Note that, by default, `vtree` displays "valid" percentages,
 i.e. the denominator used to calculate the percentage is the total number of non-missing values,
 `r sum(!is.na(FakeData$Severity))`.
 
-The nodes in the next level (which is the final level for this tree)
-correspond to values of `Sex`.
-These nodes represent males and females within subsets defined by each value of `Severity`.
+The final level of the tree corresponds to values of `Sex`.
+These nodes represent males and females *within subsets* defined by each value of `Severity`.
 In each of these nodes the percentage is calculated in terms of
 the number of patients in its parent node.
 
 Like any node, a missing-value node can have children.
 For example, of the 6 patients for whom `Severity` is missing, 3 are female and 3 are male.
-By default, `vtree` displays the full missing-value structure of the specified variables in the data frame.
+By default, `vtree` displays the full missing-value structure of the specified variables.
 
 Also by default, `vtree` automatically assigns a color palette to each variable.
 `Severity` has been assigned red hues (lightest for Mild, darkest for Severe),
@@ -118,7 +144,7 @@ while `Sex` has been assigned blue hues (light blue for females, dark blue for m
 The node representing missing values of `Severity` is colored white to draw attention to it.
 
 
-## Variable trees vs. contingency tables
+## Variable trees compared to contingency tables
 
 A tree with two variables is similar to a two-way contingency table.
 In the example above, `Sex` is shown within levels of `Severity`.
@@ -135,25 +161,17 @@ Likewise, a tree with `Severity` shown within levels of `Sex` corresponds to
 a contingency table with *row percentages*.
 
 The contingency table above is more compact than the corresponding variable tree,
-but some people find the variable tree easier to interpret.
+but some people may find the variable tree easier to interpret.
 When three of more variables are of interest,
-multi-way contingency tables can be used.
+multi-way contingency tables are often used.
 These are typically displayed using several two-way tables.
 In this situation, variable trees are generally easier to interpret.
 
-It is also noteworthy that contingency tables are not *always* more compact than variable trees.
+It is also worth noting that
+contingency tables are not *always* more compact than variable trees.
 When most cells of a large contingency table are empty (in which case the table is said to be *sparse*),
 the corresponding variable tree may be more compact since empty-nodes are not shown.
  
-Variable trees are thus an appealing alternative to multi-way contingency tables
-and can also be used to display a wide variety of information including:
-
-* multi-way intersections (often shown in Venn diagrams),
-
-* flow diagrams involving a sequence of inclusion/exclusion steps,
-
-* longitudinal events.
-
 
 ## Features of vtree
 
@@ -176,11 +194,18 @@ including a variety of summary statistics;
 
 * special displays for [indicator variables](#Venn),
 [patterns](#patterns) of values, and
-[missing value patterns](#missingValues);
+[missingness](#missingValues);
 
-* support for REDCap [checkbox variables](#REDCapCheckboxes); and
+* support for [checkbox variables](#REDCapCheckboxes) from [REDCap](https://www.project-redcap.org) databases;
 
-* features for [dichotomizing variables](#dichotomizing) and [checking for outliers](#detectingOutliers).
+* features for [dichotomizing variables](#dichotomizing) and [checking for outliers](#detectingOutliers); and
+
+* automatic generation of PNG image files and [embedding in R Markdown](#embeddingInRmarkdown) documents.
+
+In many cases, you may wish to generate several different variable trees to
+investigate a collection of variables in a data frame.
+For example, it is often useful to change the order of variables,
+prune parts of the tree, etc.
 
 
 ## Technical overview
@@ -219,26 +244,25 @@ vtree(df,"v1 v2")
 
 For additional details about how variables can be specified,
 see the section on [specification of variables](#VariableSpecification) below.
+Note that if `vtree` is called without a list of variables,
+it uses *all* of the variables in the data frame
+in the order in which they appear.
 
 Numerous additional parameters can be supplied.
 For example, by default `vtree` produces a horizontal tree
-(that is, a tree that grows from left to right),
-but sometimes a vertical tree is preferable.
-When `horiz=FALSE` is specified, `vtree` generates a vertical tree.
+(that is, a tree that grows from left to right).
+To generate a vertical tree, specify `horiz=FALSE`.
 
 
 ## Mini tutorial
 
-To display a variable tree for a single variable, use the following command:
+To display a variable tree for a single variable, say `Severity`, use the following command:
 
-```{r,eval=FALSE}
+```{r,eval=FALSE, results="asis"}
 vtree(FakeData,"Severity")
 ```
-```{r,echo=FALSE}
-v2 <- vtree(FakeData,"Severity",width=250,height=250)
-filepath <- grVizToPNG(v2,folder=PNGdir,width=1000)
-```
-![](`r filepath`){ height=2.5in }
+
+`r vtree(FakeData,"Severity",width=250,height=250,pxwidth=300,imageheight="2.5in")`
 
 Next, consider a vertical variable tree with two variables, `Severity` and `Sex`.
 A less colorful display with more spacing can be requested by specifying `plain=TRUE`:
@@ -246,19 +270,10 @@ A less colorful display with more spacing can be requested by specifying `plain=
 ```{r, eval=FALSE}
 vtree(FakeData,"Severity Sex",horiz=FALSE,plain=TRUE)
 ```
-```{r, echo=FALSE}
-v3 <- vtree(FakeData,"Severity Sex",horiz=FALSE,plain=TRUE,width=550,height=200)
-filepath <- grVizToPNG(v3,folder=PNGdir,width=800)
-```
-![](`r filepath`){ height=1.6in }
 
-At the top, the root node represents the entire data frame.
-Moving down, each subsequent level of the tree corresponds to a different variable (first `Severity`, then `Sex`).
-Within each level, each node represents the subset of its parent node where the variable has a specific value.
-For example, the level for `Severity` has nodes Mild, Moderate, Severe, and NA (which represents missing values).
-Displayed in each node is the number of observations and
-(except in the NA node) the conditional percentage,
-i.e. the number of observations in the node expressed as a percentage of the observations in its parent node.
+`r vtree(FakeData,"Severity Sex",horiz=FALSE,plain=TRUE,
+  width=450,height=200,pxwidth=1600,imageheight="1.8in")`
+
 
 ### Percentages
 
@@ -272,18 +287,19 @@ and `r sum(FakeData$Severity %in% "Mild")`/`r nrow(FakeData) - sum(is.na(FakeDat
 `r sum(FakeData$Severity %in% "Mild")/(nrow(FakeData) - sum(is.na(FakeData$Severity)))` so the percentage shown is 48%.
 No percentage is shown in the NA node since missing values are not included in the denominator.
 
-Alternatively, if you don't want to use valid percentages, specify `vp=FALSE`,
-and the denominator will be the total number of observations,
-*including* any missing values.
-In this case, a percentage is shown in each of the nodes, including any NA nodes.
+If you prefer that the denominator represent the complete set of observations
+(*including* any missing values),
+specify `vp=FALSE`.
+With this setting, a percentage will be shown in each of the nodes,
+including any NA nodes.
 
 If you don't wish to see percentages, specify `showpct=FALSE`,
-or if you don't need to see counts, specify `showcount=FALSE`.
+and if you don't wish to see counts, specify `showcount=FALSE`.
 
 
 ### Displaying a legend and hiding node labels {#legends}
 
-To include a legend, specify `showlegend=TRUE`.
+To display a legend, specify `showlegend=TRUE`.
 Next to each level of the tree,
 the variable name is displayed together with color discs and the values they correspond to.
 For each of the values, overall (*marginal*) counts are shown, together with percentages.
@@ -297,12 +313,10 @@ by specifying `shownodelabels=FALSE`:
 ```{r,eval=FALSE}
 vtree(FakeData,"Severity Sex",showlegend=TRUE,shownodelabels=FALSE)
 ```
-```{r,echo=FALSE}
-v4 <- vtree(FakeData,"Severity Sex",showlegend=TRUE,shownodelabels=FALSE,width=550,height=450)
-filepath <- grVizToPNG(v4,folder=PNGdir,width=800)
-```
-![](`r filepath`){ height=4in }
 
+`r vtree(FakeData,"Severity Sex",showlegend=TRUE,shownodelabels=FALSE,
+  width=550,height=450,pxwidth=800,imageheight="4in")`
+  
 The legend shows how colors are assigned to the different values of each variable,
 and additionally provides marginal (that is, overall) counts and percentages for each variable.
 Since `Severity` is the first variable in the tree---i.e., it is not nested within another variable---
@@ -349,48 +363,98 @@ Also note that in the legend,
 text wrapping can take place not only at spaces,
 but also at any of the following characters: . - + _ = /
 
-### And more ...
+*This concludes the mini-tutorial.*
+`vtree` has many more features, described in the following sections.
 
-This concludes the mini-tutorial.
-The rest of this vignette details the many features of `vtree`.
-There is also a section of [examples](#RdatasetExamples) using data from the built-in R datasets package.
- 
  
 ## Pruning {#pruning}
 
-*Pruning* a tree means removing specified nodes along with their descendants.
-This is useful when a variable tree gets too big,
-or when you are only interested in certain parts of the tree.
+When a variable tree gets too big,
+or you are only interested in certain parts of the tree,
+it may be useful to remove some nodes along with their descendants.
+This is known as *pruning*.
 For convenience, `vtree` provides several different ways to prune a tree,
 described below.
 
 ### The `prune` parameter
 
 Suppose you don't want the tree to include individuals whose disease is Mild or Moderate.
-You can use the `prune` parameter to remove those nodes,
-and all of their descendants.
-
-The `prune` parameter is specified as a list with an element named for each variable you wish to prune.
-In the example below the list has one element, named `Severity`.
-That element in turn is a vector `c("Mild","Moderate")` indicating the values to prune.
+Specifying `prune=list(Severity=c("Mild","Moderate"))`
+removes those nodes, and all of their descendants:
 
 ```{r,eval=FALSE}
 vtree(FakeData,"Severity Sex",prune=list(Severity=c("Mild","Moderate")))
 ```
-```{r,echo=FALSE}
-v6 <- vtree(FakeData,"Severity Sex",prune=list(Severity=c("Mild","Moderate")),
-  width=500,height=300)
-filepath <- grVizToPNG(v6,folder=PNGdir,width=800)
-```
-![](`r filepath`){ height=2.5in }
+
+`r vtree(FakeData,"Severity Sex",prune=list(Severity=c("Mild","Moderate")),
+  width=500,height=300,pxwidth=600,imageheight="2.5in")`
+
+In general,
+the argument of the `prune` parameter is a list with an element named for each variable you wish to prune.
+In the example above, the list has a single element, named `Severity`.
+In turn, that element is a vector `c("Mild","Moderate")`
+indicating the values of `Severity` to prune.
 
 **Caution**: Once a variable tree has been pruned,
 it is no longer complete.
 This can sometimes be confusing since not all observations
-are present at some levels of the tree.
+are represented at certain levels of the tree.
 **It is particularly important to avoid pruning missing value nodes**,
 since this makes it hard to interpret "valid" percentages (i.e. percentages calculated
 using the number of non-missing observations as denominator).
+
+
+### The `keep` parameter
+
+Sometimes it is more convenient to specify which nodes should be *retained*
+rather than which ones should be discarded.
+The `keep` parameter is used for this purpose,
+and can thus be considered the complement of the `prune` parameter.
+
+For example, to retain only the Moderate `Severity` node:
+```{r,eval=FALSE}
+vtree(FakeData,"Severity",keep=list(Severity="Moderate"))
+```
+
+#### Missing value nodes and the `keep` parameter
+
+It is important to note how the `keep` parameter functions
+when missing values are present.
+Consider a variable tree for the `Severity` variable,
+shown on the left with so-called "valid" percentages.
+These are percentages calculated using the number of non-missing observations as denominator
+(which is the default, specified by `vp=TRUE`).
+On the right is the same tree,
+but with percentages calculated using the total number of observations as the denominator.
+
+```{r,eval=FALSE}
+vtree(FakeData,"Severity")
+vtree(FakeData,"Severity",vp=FALSE)
+```
+
+`r vtree(FakeData,"Severity",imagewidth="1.5in",pxwidth=400)`
+`r vtree(FakeData,"Severity",vp=FALSE,imagewidth="1.5in",pxwidth=400)`
+
+Suppose we use `keep` to retain only the Moderate node.
+
+```{r,eval=FALSE}
+vtree(FakeData,"Severity",keep=list(Severity="Moderate"))
+vtree(FakeData,"Severity",vp=FALSE,keep=list(Severity="Moderate"))
+```
+
+`r vtree(FakeData,"Severity",keep=list(Severity="Moderate"),imagewidth="1.5in",pxwidth=400)`
+`r vtree(FakeData,"Severity",vp=FALSE,keep=list(Severity="Moderate"),imagewidth="1.5in",pxwidth=400)`
+
+Note that in the tree on the left (which uses valid percentages),
+the NA node is retained.
+This is done so that the percentage of Moderate cases can be interpreted..
+(There are `r sum(FakeData$Severity=="Moderate",na.rm=TRUE)` Moderate cases,
+and a total of `r sum(!is.na(FakeData$Severity))` non-missing cases,
+which is
+`r round(100*sum(FakeData$Severity=="Moderate",na.rm=TRUE)/sum(!is.na(FakeData$Severity)))`%.)
+
+On the right, the NA node has been removed, 
+because the denominator (`r nrow(FakeData)`) doesn't depend on the number of missing values.
 
 
 ### The `prunebelow` parameter
@@ -398,58 +462,82 @@ using the number of non-missing observations as denominator).
 A disadvantage of the `prune` parameter is that in the resulting tree,
 the counts shown in child nodes may not add up to the counts shown in the parent node.
 For example in the variable tree above,
-of a total of 46 patients,
-5 have Severe disease and `Severity` is unknown for 6.
-One might wonder what happened to the other 35 patients.
+of a total of `r nrow(FakeData)` patients,
+`r sum(!is.na(FakeData$Severity) & FakeData$Severity=="Severe")`
+have Severe disease and `Severity` is unknown for `r sum(is.na(FakeData$Severity))`.
+One might wonder what happened to the other `r sum(!is.na(FakeData$Severity) & FakeData$Severity!="Severe")` patients.
 
-An alternative is to prune *below* the specified nodes.
-In this case, this means that the Mild and Moderate nodes will be shown,
+A solution to this problem is to retain the specified nodes,
+but to prune *below* them (i.e. to prune their descendants).
+In the present example, this means that the Mild and Moderate nodes will be shown,
 but not their descendants.
-
+The `prunebelow` parameter is used to do this,
+and its argument has the same form as for the `prune` parameter. 
+ 
 ```{r,eval=FALSE}
 vtree(FakeData,"Severity Sex",prunebelow=list(Severity=c("Mild","Moderate")))
 ```
-```{r,echo=FALSE}
-v7 <- vtree(FakeData,"Severity Sex",prunebelow=list(Severity=c("Mild","Moderate")),
-  width=500,height=300)
-filepath <- grVizToPNG(v7,folder=PNGdir,width=800)
+
+`r vtree(FakeData,"Severity Sex",prunebelow=list(Severity=c("Mild","Moderate")),
+  width=500,height=300,pxwidth=600,imageheight="3in")`
+
+### The `follow` parameter
+ 
+The complement of the `prunebelow` function is the `follow` function.
+Instead of specifying which nodes should be pruned below,
+this allows you to specify which nodes should be "followed" (that is, *not* pruned below).
+
+
+### The `prunesmaller` parameter
+
+As a variable tree grows it can become difficult to see the forest for the tree.
+For example, consider the following variable tree:
+
+```{r, eval=FALSE}
+vtree(FakeData,"Severity Sex Age Category",sameline=TRUE)
 ```
-![](`r filepath`){ height=3in }
 
-### The `keep` and `follow` parameters
+`r vtree(FakeData,"Severity Sex Age Category",sameline=TRUE,imageheight="7in",pxwidth=800)`
 
-Instead of specifying the nodes that should be discarded,
-sometimes it is more convenient to specify the nodes that should be *retained*.
-The `keep` parameter is used to specify nodes that should *not* be pruned
-(all other nodes at that level of the tree will be pruned).
-The `follow` parameter is like the `keep` parameter except that no nodes at that level of the tree will be pruned.
-Instead, those nodes that are not "followed" will be pruned at the next level.
+One solution is to prune nodes that contain small numbers of observations.
+For example if you want to only see nodes with at least 3 observations,
+you can specify `prunesmaller=3`, as in this example:
+
+```{r, eval=FALSE}
+vtree(FakeData,"Severity Sex Age Category",sameline=TRUE,prunesmaller=3)
+```
+
+`r vtree(FakeData,"Severity Sex Age Category",sameline=TRUE,prunesmaller=3,
+  imageheight="5in",pxwidth=1200)`
+
+As with the `keep` parameter,
+when `vp=TRUE` (which is the default, and means that valid percentages are shown), 
+nodes represent missing values will not be pruned.
+(As noted in the section on the `keep` parameter,
+this is because percentages are confusing when missing values are not shown.)
+When `vp=FALSE`, missing nodes will be pruned (if they are small enough).
 
 
-## Changing how variables and nodes are labeled {#labeling}
+## Labels for variables and nodes {#labeling}
 
 By default, `vtree` labels variables and nodes exactly as they are in the data frame.
-For presentation purposes it is often useful to change these labels.
+But it is often useful to change these labels.
 
 ### Changing variable labels with the `labelvar` parameter
 
-If `Severity` in fact represents severity on day 1,
-you might want it to appear that way in the variable tree.
-To do this, use the `labelvar` parameter,
-which is specified as a vector whose element names are variable names.
-As an example, if `Severity` in fact represents initial severity,
-you can specify `labelvar=c(Severity="Initial severity")`.
+Suppose `Severity` in fact represents initial severity.
+To label it that way in the variable tree,
+specify `labelvar=c(Severity="Initial severity")`.
 
 ```{r,eval=FALSE}
 vtree(FakeData,"Severity Sex",horiz=FALSE,labelvar=c(Severity="Initial severity"))
 ```
-```{r,echo=FALSE}
-v8 <- vtree(FakeData,"Severity Sex",horiz=FALSE,width=700,height=250,
-  labelvar=c(Severity="Initial severity"))
-filepath <- grVizToPNG(v8,folder=PNGdir,width=800)
-```
-![](`r filepath`){ height=2.2in }
 
+`r vtree(FakeData,"Severity Sex",horiz=FALSE,
+  labelvar=c(Severity="Initial severity"),
+  width=700,height=250,pxwidth=1200,imageheight="2.2in")`
+  
+  
 ### Changing node labels with the `labelnode` parameter
 
 By default, `vtree` labels nodes (except for the root node)
@@ -458,20 +546,18 @@ using the values of the variable in question.
 Sometimes it is convenient to instead specify custom labels for nodes.
 You can use the `labelnode` argument to relabel the values.
 For example, you might want to use "Male" and "Female" instead of "M" and "F".
-The `labelnode` argument argument is specified as a list whose element names are variable names.
-To substitute `New label` for `Old label`,
-the syntax is: `"New label"="Old label"`.
-Thus the full specification is: `labelnode=list(Sex=c(Male="M",Female="F"))`.
 
 ```{r,eval=FALSE}
 vtree(FakeData,"Group Sex",horiz=FALSE,labelnode=list(Sex=c(Male="M",Female="F")))
 ```
-```{r,echo=FALSE}
-v8a <- vtree(FakeData,"Group Sex",horiz=FALSE,labelnode=list(Sex=c(Male="M",Female="F")),
-  width=700,height=250)
-filepath <- grVizToPNG(v8a,folder=PNGdir,width=800)
-```
-![](`r filepath`){ height=2.2in }
+
+`r vtree(FakeData,"Group Sex",horiz=FALSE,labelnode=list(Sex=c(Male="M",Female="F")),
+  width=700,height=250,pxwidth=800,imageheight="2.2in")`
+
+The `labelnode` argument argument is specified as a list whose element names are variable names.
+To substitute `New label` for `Old label`,
+the syntax is: `"New label"="Old label"`.
+Thus the full specification is: `labelnode=list(Sex=c(Male="M",Female="F"))`.
 
 ### Targeted node labels using the `tlabelnode` parameter
 
@@ -492,31 +578,43 @@ vtree(FakeData,"Group Sex",horiz=FALSE,
     c(Group="B",Sex="F",label="woman"),
     c(Group="B",Sex="M",label="man")))
 ```
-```{r,echo=FALSE}
-v8b <- vtree(FakeData,"Group Sex",horiz=FALSE,width=700,height=250,
+
+`r vtree(FakeData,"Group Sex",horiz=FALSE,
   labelnode=list(Group=c(Child="A",Adult="B")),
   tlabelnode=list(
     c(Group="A",Sex="F",label="girl"),
     c(Group="A",Sex="M",label="boy"),
     c(Group="B",Sex="F",label="woman"),
-    c(Group="B",Sex="M",label="man")))
-filepath <- grVizToPNG(v8b,folder=PNGdir,width=1000)
-```
-![](`r filepath`){ height=2.2in }
+    c(Group="B",Sex="M",label="man")),
+  width=700,height=250,pxwidth=800,imageheight="2.2in")`
 
 
 ## Text and text formatting {#textFormatting}
 
 `Graphviz`,
-the open source graph visualization software that provides the basis for `vtree`,
+the open source graph visualization software that `vtree` is built on,
 supports a variety of text formatting (including boldface, colors, etc.).
 This is used in `vtree` to control formatting of text such as node labels.
 
+
+### Markdown-style codes for text formatting
+
+By default, the `vtree` package uses markdown-style codes for text formatting.
+
+* `\n` means insert a line break
+* `\n*l` means make the preceding line left-justified and insert a line break
+* `*...*` means display text in italics
+* `**...**` means display text in bold
+* `^...^` means display text in superscript (using 10 point font)
+* `~...~` means display text in subscript (using 10 point font)
+* `%%red ...%%` means display text in red (or whichever color is specified)
+
+
 ### HTML-like codes for text formatting
 
-**NOTE: The section after this one shows how to use an easy alternative to HTML-like codes.**
-
-`Graphviz` implements "HTML-like labels", including:
+As an alternative,
+if you specify `HTMLtext=TRUE` you can use "HTML-like labels"
+(implemented in `Graphviz`), including:
 
 * `<BR/>` means insert a line break
 * `<BR ALIGN='LEFT'/>` means make the preceding line left-justified and insert a line break
@@ -531,21 +629,6 @@ This is used in `vtree` to control formatting of text such as node labels.
 * `<FONT COLOR='red'> ... </FONT>` means set font to red
 
 See <https://www.graphviz.org/doc/info/shapes.html#html> for more details.
-
-**Note**: To use these HTML-like codes, it is necessary to specify `HTMLtext=TRUE`.
-
-
-### Markdown-style codes for text formatting
-
-By default, the `vtree` package uses markdown-style codes for text formatting.
-
-* `\n` means insert a line break
-* `\n*l` means make the preceding line left-justified and insert a line break
-* `*...*` means display text in italics
-* `**...**` means display text in bold
-* `^...^` means display text in superscript (using 10 point font)
-* `~...~` means display text in subscript (using 10 point font)
-* `%%red ...%%` means display text in red (or whichever color is specified)
 
 
 ### Adding text to nodes using the `text` parameter
@@ -563,13 +646,11 @@ indicating that the Mild node should include additional text using Markdown-styl
 vtree(FakeData,"Group Severity",horiz=FALSE,showvarnames=FALSE,
   text=list(Severity=c(Mild="\n*Excluding\nnew diagnoses*")))
 ```
-```{r,echo=FALSE}
-v9 <- vtree(FakeData,"Group Severity",horiz=FALSE,showvarnames=FALSE,
+
+`r vtree(FakeData,"Group Severity",horiz=FALSE,showvarnames=FALSE,
   text=list(Severity=c(Mild="\n*Excluding\nnew diagnoses*")),
-  width=450,height=150)
-filepath <- grVizToPNG(v9,folder=PNGdir,width=1000)
-```
-![](`r filepath`){ height=2.5in }
+  width=450,height=150,pxwidth=1200,imageheight="2.5in")`
+  
 
 ### Targeted text using the `ttext` parameter
 
@@ -592,38 +673,34 @@ vtree(FakeData,"Group Severity",horiz=FALSE,showvarnames=FALSE,
     c(Group="A",text="\nSweden"),
     c(Group="B",text="\nNorway")))
 ```
-```{r,echo=FALSE}
-v9_a <- vtree(FakeData,"Group Severity",horiz=FALSE,showvarnames=FALSE,
+
+`r vtree(FakeData,"Group Severity",horiz=FALSE,showvarnames=FALSE,
   ttext=list(c(Group="B",Severity="Mild",text="\n*Excluding\nnew diagnoses*"),
     c(Group="A",text="\nSweden"),c(Group="B",text="\nNorway")),
-  width=450,height=150)
-filepath <- grVizToPNG(v9_a,folder=PNGdir,width=1000)
-```
-![](`r filepath`){ height=2.5in }
-
-
+  width=450,height=150,pxwidth=1000,imageheight="2.5in")`
+  
 
 ## Specification of variables {#VariableSpecification}
  
 For convenience,
-vtree allows you to specify the variable names in a single character string
-(with the variable names separated by whitespace).
+`vtree` allows you to specify variable names (separated by whitespace)
+in a single character string.
 If, however, any of the variable names have internal spaces,
 the variable names must be specified as a vector of character strings.
  
 Additionally, there are several modifiers that can be used
-to change the way that variables are represented in a tree.
+to change the way variables are represented in a tree.
  
  
 ### prefix `is.na:`
 
 If an individual variable name is preceded by `is.na:`,
 that variable will be replaced by a missing value indicator in the variable tree.
-(This differs from the `check.is.na` parameter, described below,
+(This differs from the `check.is.na` parameter, described later,
 which is used to replace *all* of the specified variables with missing value indicators.)
 
 
-### prefix `stem:`
+### prefixes `stem:` and `rc:`
 
 In datasets exported from [REDCap](https://www.project-redcap.org/),
 checkboxes are represented using multiple variables.
@@ -641,25 +718,39 @@ which take effect at the level of the entire data frame,
 the `tri:` prefix takes effect within each node.
 
 The effect of this variable specification
-is to trichotomize a numeric variable within a node
-based on the median and the IQR, both computed within that node.
-The result is three categories:
+is to *trichotomize* the values of a numeric variable,
+i.e. to divide them into three groups:
+ 
+* "mid": values within plus or minus 1.5&times;IQR of the median,
 
-* "mid": namely values within plus or minus 1.5&times;IQR of the median,
+* "high": values more than 1.5&times;IQR above the median,
 
-* "high": namely values more than 1.5&times;IQR above the median,
+* "low": values more than 1.5&times;IQR below the median.
 
-* "low": namely values more than 1.5&times;IQR below the median.
+
+### suffix `*`
+
+Specifying `Ind*` matches all variable names that start with `Ind`.
+In `FakeData` these are `Ind1`, `Ind2`, and `Ind3`.
+
+The `*` suffix matches all variable names
+
+
+### suffix `#`
+
+Specifying `Ind#` matches all variable names that start with `Ind`
+and end with a numeric digit, namely `Ind1`, `Ind2`, and `Ind3`.
+(In this particular case, this is the same result as using `Ind*`).
 
 
 ### specification `variable=value` {#dichotomizing}
 
 When a variable takes on a large number of different values,
-it will result in a very large variable tree.
+the resulting variable tree will very large.
 One solution is to prune the tree,
-for example by keeping just one node.
-An alternative is to specify the value of the variable that is of primary interest.
-The result will be to dichotomize the variable at that value.
+for example by keeping just the node corresponding to one value of a particular variable.
+An alternative is to specify the value of the variable that is of primary interest and 
+`vtree` will dichotomize the variable at that value.
 For example if `Severity=Mild` is specified,
 the `Severity` variable will be dichotomized between `Mild` and `Not Mild`.
 
@@ -678,18 +769,21 @@ It is often useful to display information about other variables
 This is particularly useful for numeric variables,
 which generally cannot be used to build the tree since they have too many distinct values.
 For example, we might wish to display the mean age for individuals in each node.
-Or we might wish to list the ID numbers for individuals in each node.
+Or we might wish to list the ID numbers of the individuals in each node.
 The `summary` argument can be used to flexibly specify additional information to display.
 
 
 ### A simple example
 
-The `summary` parameter is specified as a character string
-that starts with the name of the variable for which a summary is desired.
-This is followed by a space,
-and then the rest of the string specifies what to display.
-Special codes (see table below) are use to indicate the type of summary desired,
-control which nodes display the summary, etc.
+The argument of the `summary` parameter is a character string with the following structure:
+
+* It starts with the name of the variable for which a summary is desired. (We'll see later that variable specifications and expressions can also be used, as long as they do not contain any spaces.)
+
+* Next there is a space.
+
+* The remainder of the string specifies what to display,
+with text as well as special codes to indicate the type of summary desired and to control which nodes display the summary, etc.
+
 For example `%mean%` indicates that the mean of the specified variable should be shown.
 Thus to display the mean of the numeric variable `Score`,
 you could specify `summary="Score \nmean score: %mean%"`.
@@ -701,12 +795,20 @@ the summary should start on a new line with the words "mean score: " followed by
 ```{r,eval=FALSE}
 vtree(FakeData,"Severity",summary="Score \nmean score: %mean%",sameline=TRUE,horiz=FALSE)
 ```
-```{r,echo=FALSE}
-v10 <- vtree(FakeData,"Severity",summary="Score \nmean score: %mean%",
-  sameline=TRUE,horiz=FALSE,width=450,height=150)
-filepath <- grVizToPNG(v10,folder=PNGdir,width=1000)
+
+`r vtree(FakeData,"Severity",summary="Score \nmean score: %mean%",
+  sameline=TRUE,horiz=FALSE,
+  width=450,height=150,pxwidth=1000,imageheight="1.6in")`
+  
+
+To see the means without any decimals, the `cdigits` parameter can be used;
+for example:
+
+```{r,eval=FALSE}
+vtree(FakeData,"Severity",summary="Score \nmean score: %mean%",cdigits=0,
+  sameline=TRUE,horiz=FALSE)
 ```
-![](`r filepath`){ height=1.6in }
+
 
 The following codes can be used to show summary information:
 
@@ -714,6 +816,7 @@ code            | result
 :---------------|:-------------------------------------------------------------------
 `%mean%`        |  mean
 `%SD%`          |  standard deviation
+`%sum%`         |  sum
 `%min%`         |  minimum
 `%max%`         |  maximum
 `%pX%`          |  Xth percentile (e.g. `p50` means the 50th percentile)
@@ -724,6 +827,7 @@ code            | result
 `%list%`        |  list of individual values, separated by commas
 `%listlines%`   |  list of individual values, each on a separate line
 `%mv%`          |  the number of missing values
+`%nonmv%`       |  the number of non-missing values
 `%v%`           |  the name of the variable
 
 The `summary` argument can use any number of these codes,
@@ -737,54 +841,20 @@ To do this, specify `summary` as a vector of character strings:
 
 ```{r,eval=FALSE}
 vtree(FakeData,"Severity",horiz=FALSE,showvarnames=FALSE,splitwidth=Inf,sameline=TRUE,
-  summary=c(
-    "Score \nScore: mean (SD) %mean% (%SD%)",
-    "Pre \nPre: range %min%, %max%"))
+  summary=c("Score \nScore: mean (SD) %mean% (%SD%)","Pre \nPre: range %min%, %max%"))
 ```
-```{r,echo=FALSE}
-v11 <- vtree(FakeData,"Severity",horiz=FALSE,showvarnames=FALSE,splitwidth=Inf,sameline=TRUE,
+
+`r vtree(FakeData,"Severity",horiz=FALSE,showvarnames=FALSE,splitwidth=Inf,sameline=TRUE,
   summary=c(
     "Score \nScore: mean (SD) %mean% (%SD%)",
     "Pre \nPre: range %min%, %max%"),
-  width=650,height=350)
-filepath <- grVizToPNG(v11,folder=PNGdir,width=1000)
-```
-![](`r filepath`){ height=1.7in }
+  width=650,height=350,pxwidth=1000,imageheight="1.5in")`
+  
 
-
-### The %npct% code
-
-Suppose we want to know the proportion of patients with a viral infection
-within each severity level.
-We could display a variable tree for the variables `Severity` and `Viral`.
-But that would show a separate node for TRUE and FALSE values of `Viral`,
-and we only need to know the percentage for the TRUE values.
-If what we're looking for is simply
-the number and percentage of patients with viral infection in each severity group,
-the `%npct%` code can be used.
-This results in a simpler tree:
-
-```{r,eval=FALSE}
-vtree(FakeData,"Severity",summary="Viral \nViral %npct%",horiz=FALSE,
-  showvarnames=FALSE,sameline=TRUE)
-```
-```{r,echo=FALSE}
-v12 <- vtree(FakeData,"Severity",summary="Viral \nViral %npct%",horiz=FALSE,
-  showvarnames=FALSE,sameline=TRUE,width=650,height=200)
-filepath <- grVizToPNG(v12,folder=PNGdir,width=800)
-```
-![](`r filepath`){ height=1.5in }
-
-Note that in each node,
-"mv" indicates the number of missing values (if any).
-
-The `%pct%` code is the same as the `%npct%` code except that it does not show the frequency, only the percentage (without parentheses).
-
-
-### The %list% code
+### The `%list%` code
 
 It is sometimes convenient to see individual values of a variable in each node.
-For example it is often convenient to see ID numbers.
+For example you might want to see ID numbers.
 To do this, use the `%list%` code.
 By default this information will be displayed in each node.
 When a value occurs more than once in the subset,
@@ -793,14 +863,13 @@ The `%list%` code separates values by commas.
 Alternatively, the `%listlines%` code can be used to put each value on a new line.
 
 When there are many IDs, it is often convenient to truncate the output.
-The `%trunc=`*N*`%` code specifies that, after *N* characters, summary information
-should be truncated with "...".
-
+If you specify `%trunc=`*N*`%`, summary information
+will be truncated after *N* characters with "...".
 
 ### The `%noroot%`, `%leafonly%`, `%var=`*v*`%`, and `%node=`*n*`%` codes
 
 By default, summary information is shown in all nodes.
-However, it may also be convenient to only show it in certain nodes.
+However, it may also be convenient to only show it in specific nodes.
 The following codes are available:
 
 **code**         | **summary information restricted to:**
@@ -811,158 +880,95 @@ The following codes are available:
 `%node=`*n*`%`   | nodes named *n*
 
 
+### Specification of variables in the summary argument
 
-### Specification of variables in summary
-
-As in the [specification of variables](#VariableSpecification) for structuring a variable tree,
-there are special ways to specify variables in the `summary` parameter.
+Variables in the `summary` parameter can also be specified in a way similar
+to the [specification of variables](#VariableSpecification) for structuring a variable tree.
 For example, if we wish to know the proportion of patients in each node whose `Category` is single,
 we specify `Category=single` in the `summary` argument.
 
 ```{r,eval=FALSE}
 vtree(FakeData,"Severity",summary="Category=single \n%pct% single",sameline=TRUE,horiz=FALSE)
 ```
-```{r,echo=FALSE}
-v13x <- vtree(FakeData,"Severity",summary="Category=single \n%pct% single", 
-  horiz=FALSE,sameline=TRUE,width=450,height=150)
-filepath <- grVizToPNG(v13x,folder=PNGdir,width=800)
-```
-![](`r filepath`){ height=1.3in }
+
+`r vtree(FakeData,"Severity",summary="Category=single \n%pct% single", 
+  horiz=FALSE,sameline=TRUE,
+  width=450,height=150,pxwidth=800,imageheight="1.3in")`
+  
 
 Continuous variables such as `Score` can be dichotomized using
 notation such as `Score>10` or `Score<20`.
 
 
-### Showing/hiding summaries on a node-by-node basis depending on the data in the node using the `runsummary` parameter
+### R expressions in the summary argument
 
-Sometimes it is desirable to show summaries only in nodes with certain characteristics.
-Consider the following example:
-suppose that in patients with a viral infection,
-the presence or absence of two features of the virus
-(Feature 1 and Feature 2) is recorded.
-To simulate this situation,
-let's make up variables `Feature1` and `Feature2` but set them to NA if the `Viral` variable is FALSE or NA.
-
-```{r}
-set.seed(1234)
-FakeData$Feature1 <- rbinom(nrow(FakeData),1,0.5)
-FakeData$Feature1[!FakeData$Viral | is.na(FakeData$Viral)] <- NA
-FakeData$Feature2 <- rbinom(nrow(FakeData),1,0.5)
-FakeData$Feature2[!FakeData$Viral | is.na(FakeData$Viral)] <- NA
-```
-
-Here is a tree for `Sex` and `Category` showing three summaries in each leaf node:
-the number and percent of patients with viral infections
-and number and percent of viruses with Feature 1 and with Feature 2.
+Rather than starting the `summary` argument with a variable name,
+an R expression involving variables in the data frame can be given,
+as long as it does not contain any spaces.
 
 ```{r,eval=FALSE}
-vtree(FakeData,"Sex Category",sameline=TRUE,splitwidth=150,varminwidth=c(Category=6),
-  summary=c(
-    "Viral \nviral: %npct%%leafonly%",
-    "Feature1 , F1: %npct%%leafonly%",
-    "Feature2 , F2: %npct%%leafonly%"))
-```
-```{r,echo=FALSE}
-v13a <-
-  vtree(FakeData,"Sex Category",sameline=TRUE,splitwidth=150,varminwidth=c(Category=6),
-  summary=c(
-    "Viral \nviral: %npct%%leafonly%",
-    "Feature1 , F1: %npct%%leafonly%",
-    "Feature2 , F2: %npct%%leafonly%"))
-filepath <- grVizToPNG(v13a,folder=PNGdir,width=800)
-```
-![](`r filepath`){ height=3in }
-
-But note that in two of the nodes there are no viral infections,
-so in these nodes there are no virus features to describe.
-The tree would be improved if we could turn off the summaries in nodes where there are no viral infections.
-We can do this by specifying, for each of the three summaries,
-a function that returns TRUE or FALSE for each node.
-The first function always returns TRUE:
-
-```{r, eval=FALSE}
-function(x) TRUE
+vtree(FakeData,"Severity Category",
+  summary="(Post-Pre)/Pre \nmean = %mean%",sameline=TRUE,horiz=FALSE,cdigits=1)
 ```
 
-The next two functions return TRUE if there is at least one viral infection in the node:
+`r vtree(FakeData,"Severity Category",
+  summary="(Post-Pre)/Pre \nmean = %mean%",sameline=TRUE,horiz=FALSE,cdigits=1,
+  width=450,height=150,pxwidth=1000,imageheight="2in")`
 
-```{r, eval=FALSE}
-function(x) any(x$Viral,na.rm=TRUE)
-```
-
-These three functions are specified (in a list) using the `runsummary` parameter:
-
-```{r,eval=FALSE}
-vtree(FakeData,"Sex Category",sameline=TRUE,splitwidth=150,varminwidth=c(Category=6),
-  summary=c(
-    "Viral \nviral: %npct%%leafonly%",
-    "Feature1 , F1: %npct%%leafonly%",
-    "Feature2 , F2: %npct%%leafonly%"),
-  runsummary=list(
-    function(x) TRUE,
-    function(x) any(x$Viral,na.rm=TRUE),
-    function(x) any(x$Viral,na.rm=TRUE)))
-```
-```{r,echo=FALSE}
-v13b <- vtree(FakeData,"Sex Category",sameline=TRUE,splitwidth=150,varminwidth=c(Category=6),
-  width=950,height=900,
-  summary=c(
-    "Viral \nviral: %npct%%leafonly%",
-    "Feature1 , F1: %npct%%leafonly%",
-    "Feature2 , F2: %npct%%leafonly%"),
-  runsummary=list(
-    function(x) TRUE,
-    function(x) any(x$Viral,na.rm=TRUE),
-    function(x) any(x$Viral,na.rm=TRUE)))
-filepath <- grVizToPNG(v13b,folder=PNGdir,width=800)
-```
-![](`r filepath`){ height=3in }
+Expressions involving functions can also be used; for example `sqrt(abs(Post/Pre))`.
 
 
+## Pattern trees and pattern tables {#patterns}
 
-## Pattern trees {#patterns}
-
-Each leaf node in a tree provides the frequency of a particular pattern (combination)
+Each node in a variable tree provides the frequency of a particular combination
 of values of the variables.
+The leaf nodes represent *all* the observed combinations of values of all of the variables.
 For example, in a variable tree for `Severity` and `Sex`,
 the leaf nodes correspond to Mild F, Mild M, Moderate F, Moderate M, etc.
-If these patterns themselves are used as the first variable in a tree,
-then the tree will be "detangled";
-that is, each branch of the tree will represent a unique pattern.
+These combinations, or "patterns", can be treated as an additional variable.
+And if this new pattern variable is used as the first variable in a tree,
+then the branches of the tree will be simplified:
+each branch will represent a unique pattern, with no sub-branches.
 A "pattern tree" can be easily produced by specifying `pattern=TRUE`:
 
 ```{r, eval=FALSE}
 vtree(FakeData,"Severity Sex")
 vtree(FakeData,"Severity Sex",pattern=TRUE)
 ```
-```{r, echo=FALSE}
-v14 <- vtree(FakeData,"Severity Sex",width=650,height=650)
-filepath <- grVizToPNG(v14,folder=PNGdir,width=800)
-v15 <- vtree(FakeData,"Severity Sex",pattern=TRUE,width=650,height=650)
-filepath2 <- grVizToPNG(v15,folder=PNGdir,width=800)
+```{r, echo=FALSE,results="asis"}
+cat(vtree(FakeData,"Severity Sex",
+  width=650,height=650,pxwidth=500,imageheight="4in"))
+#filepath <- grVizToPNG(v14,width=800))
+
+cat("&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;")
+
+cat(vtree(FakeData,"Severity Sex",pattern=TRUE,
+  width=650,height=650,pxwidth=600,imageheight="4in"))
+#filepath2 <- grVizToPNG(v15,width=800)
+#![](`r filepath`){ height=4in } &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ![](`r filepath2`){ height=4in }
 ```
-![](`r filepath`){ height=4in } &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ![](`r filepath2`){ height=4in }
 
-Pattern trees are easier to read,
-but they involve a considerable a loss of information,
+
+Pattern trees are easier to read than ordinary variable trees,
+but they involve a considerable loss of information,
 since they only represent the *n*th-level subsets
-(where *n* is the number of variables)..
+(where *n* is the number of variables).
 
-Note that, by default, the root node is not shown when `pattern=TRUE` is specified,
-because this simplifies the display
-(in fact, without the root node, it is no longer a tree!).
+Note that by default, when `pattern=TRUE` is specified,
+the root node is not shown (in order to simplify the display).
 A disadvantage of this is that the total sample size is not shown.
-The root node can be shown by specifying `showroot=TRUE`.
+You can override this behavior by specifying `showroot=TRUE`.
 
-This tree has two other special characteristics.
+A pattern tree has two other special characteristics.
 First, note that after the first level (representing `pattern`),
 counts and percentages are not shown,
 since they are not informative:
 by definition, all nodes within a branch have the same count.
 Second, note that in place of arrows, undirected line segments are shown.
-This is because, without percentages, arrows have no particular significance.
-That being said, in some cases there is a natural ordering to the variables
-(as is the case with longitudinal variables).
+This is because, unlike in a regular variable tree,
+the order of variables is irrelevant in a pattern tree.
+Sometimes, however, the variables do have a natural ordering,
+as in the case of longitudinal variables.
 To show arrows, specify `seq=TRUE` instead of `pattern=TRUE`,
 and a "sequence" (i.e. an ordered pattern) will be shown.
 
@@ -973,190 +979,156 @@ Summaries can be shown in pattern trees
 
 ### Pattern tables
 
-When `pattern=TRUE` is specified, the variable tree looks a lot like a table.
-In fact a data frame containing the information from the pattern tree 
+A pattern tree has the same structure as a table.
+Indeed, it may be more convenient to produce a table rather than a tree.
+A data frame containing the information from the pattern tree 
 can be exported by specifying `ptable=TRUE`:
 
 ```{r}
 vtree(FakeData,"Severity Sex",ptable=TRUE)
 ```
 
-This compact representation may be convenient for display in a manuscript.
+The pattern table includes a column for the counts from the pattern nodes,
+and a column for percentages.
+Compared to a variable tree, this table is much more compact,
+and may be more suitable for use in a manuscript.
 
-Summaries can be very useful in pattern tables.
-If a single summary is requested, it appears in the `summary_1` variable in the data frame.
-If additional summaries are requested they appear as `summary_2`, `summary_3`, etc.
+### Indicator variables
+
+Pattern trees are useful for *indicator variables*,
+i.e. variables that take values like 0/1, no/yes, FALSE/TRUE, etc.
+For convenience in this section,
+we'll refer to 0 (or no, FALSE, etc.) as a *negative*
+and 1 (or yes, TRUE, etc.) as an *affirmative*.
+
+The variables `Ind1` through `Ind4` in `FakeData` are 0/1 indicator variables.
+If these variables are interpreted as representing set membership
+(0 = non-member, 1 = member),
+then a pattern tree is an alternative representation of a Venn diagram.
+If you specify `Venn=TRUE`,
+the nodes (except for the pattern nodes) will be blank,
+with only their shade indicating their value
+(dark = 1, light = 0, white = missing).
+
+```{r, eval=FALSE}
+vtree(FakeData,"Ind1 Ind2 Ind3 Ind4",Venn=TRUE,pattern=TRUE)
+```
+
+`r vtree(FakeData,"Ind1 Ind2 Ind3 Ind4",Venn=TRUE,pattern=TRUE,
+  width=650,height=650,pxwidth=600,imageheight="6in")`
+
+A pattern tree for indicator variables provides all the information that a Venn diagram represents,
+but unlike a Venn diagram, missing values are also represented.
+This can also be shown as a pattern table.
+For example:
+
+```{r}
+vtree(FakeData,"Ind1 Ind2",ptable=TRUE)
+```
+
+#### The `VennTable` function
+
+For indicator variables, there is an extra function, `VennTable`,
+which converts the pattern table to a matrix of character strings
+and adds some additional totals.
+
+```{r}
+VennTable(vtree(FakeData,"Ind1 Ind2",ptable=TRUE))
+```
+
+By default in R, when a matrix of character strings is printed,
+quotation marks are displayed around each element.
+Unfortunately the result is unattractive.
+Instead it's helpful to call the `print` function and specify `quote=FALSE`:
+
+```{r}
+print(VennTable(vtree(FakeData,"Ind1 Ind2",ptable=TRUE)),quote=FALSE)
+```
+
+Without all those quotation marks, it's easier to see what `VennTable` adds:
+
+* the total sample size (`r nrow(FakeData)`) and percentage (100), and
+
+* the total number (N) of affirmatives for each variable, together with a percentage.
+
+The `VennTable` function can also be used in an R Markdown document.
+Specifying `markdown=TRUE` generates a pandoc markdown pipetable,
+with several formatting tweaks:
+
+* the rows and columns of the table are transposed
+
+* affirmatives are represented by checkmarks
+
+* negatives are represented by spaces
+
+* missing values are represented by dashes (which can be changed with the `NAcode` parameter).
+
+To display the table in R Markdown, use this inline call:
+
+```{r, eval=FALSE}
+`r VennTable(vtree(FakeData,"Ind1 Ind2",ptable=TRUE),markdown=TRUE)`
+```
+
+`r VennTable(vtree(FakeData,"Ind1 Ind2",ptable=TRUE),markdown=TRUE)`
+
+`VennTable` has some additional parameters.
+The `checked` parameter is used to specify values that should be interpreted as affirmative.
+By default, it is set to `c("1","TRUE","Yes","yes","N/A")`.
+Similarly, the `unchecked` parameter is used to specify values that should be interpreted as negative,
+with default `c("0","FALSE","No","no","not N/A")`.
+
+#### Using the `summary` parameter in pattern tables
+
+The `summary` parameter can also be used in pattern tables.
+If a single summary is requested,
+it appears in the `summary_1` variable in the data frame.
+Additional summaries appear as `summary_2`, `summary_3`, etc.
 
 ```{r}
 vtree(FakeData,"Severity Sex",summary=c("Score %mean%","Pre %mean%"),ptable=TRUE)
 ```
 
-
-
-## Special variable trees
-
-### Multi-way intersections {#Venn}
-
-A Venn diagram is used to show all intersections between several sets.
-When there are more than three sets, Venn diagrams are hard to construct and to read.
-Additionally, Venn diagrams cannot represent missing values.
-
-One alternative is to use variable trees.
-In the following example,
-the variables `Ind1` through `Ind4` are indicators of set membership
-(0 = not a member of the set, 1 = member).
-Convenient settings for such variables are requested by specifying `Venn=TRUE`:
-
-```{r, eval=FALSE}
-vtree(FakeData,"Ind1 Ind2 Ind3 Ind4",Venn=TRUE)
-```
-```{r, echo=FALSE}
-v21 <- vtree(FakeData,"Ind1 Ind2 Ind3 Ind4",Venn=TRUE,width=650,height=650)
-filepath <- grVizToPNG(v21,folder=PNGdir,width=1000)
-```
-![](`r filepath`){ height=7in }
-
-Note that for simplicity, node labels are not shown.
-Instead, dark colors indicate set membership,
-while light colors indicate non-membership.
-Also, percentages are not shown by default.
-Specifying `showpct=TRUE` displays percentages.
-
-In contrast to a Venn diagram, which shows all intersections,
-a variable tree only shows information on specific intersections,
-determined by the ordering of the variables.
- 
-Specifying `pattern=TRUE` produces an even simpler representation,
-since only the full *n*-way intersections (where *n* is the number of variables)
-are represented:
-
-
-```{r,eval=FALSE}
-vtree(FakeData,"Ind1 Ind2 Ind3 Ind4",Venn=TRUE,pattern=TRUE,
-  palette=c(Ind1=1,Ind2=2,Ind3=3,Ind4=4))
-```
-```{r,echo=FALSE}
-v23 <- vtree(FakeData,"Ind1 Ind2 Ind3 Ind4",Venn=TRUE,pattern=TRUE,
-  palette=c(Ind1=1,Ind2=2,Ind3=3,Ind4=4))
-filepath <- grVizToPNG(v23,folder=PNGdir,width=800)
-```
-![](`r filepath`){ height=5.5in }
-
-Note that in the call to `vtree` above,
-the `palette` parameter is specified so that the color palettes match
-with the preceding variable tree.
-(Otherwise, `pattern` gets palette number 1,
-and then `Ind1` gets  palette number 2, and so on.)
-
-Although this tree provides less information than the branching-style tree,
-it is more easily interpreted.
-This kind of tree is also useful for investigating incomplete longitudinal data.
-
-
 ### Checking for missing values with the `check.is.na` parameter {#missingValues}
 
-The `check.is.na` parameter is used to produce a tree that only shows whether
-the specified variables are missing or not.
-By default, `pattern=TRUE` is also set when `check.is.na=TRUE`.
-Whereas the variables that `vtree` uses to build variable trees are usually categorical,
-this is a situation where non-categorical variables can be used,
+If `check.is.na=TRUE` is specified,
+each variable is replaced by an indicator of whether or not it is missing,
+and `pattern=TRUE` is automatically set.
+As when `Venn=TRUE` is specified, all nodes except for the pattern node are blank,
+and only their shade indicates missing (dark) or not (light).
+Whereas the variables used to build a variable tree are normally categorical,
+in this situation non-categorical variables can be used,
 because their missingness is represented instead of their actual values.
 
 ```{r,eval=FALSE}
 vtree(FakeData,"Severity Age Pre Post",check.is.na=TRUE)
 ```
-```{r,echo=FALSE}
-v24 <- vtree(FakeData,"Severity Age Pre Post",check.is.na=TRUE,
-  width=700,height=370)
-filepath <- grVizToPNG(v24,folder=PNGdir,width=800)
+
+`r vtree(FakeData,"Severity Age Pre Post",check.is.na=TRUE,
+  width=700,height=370,pxwidth=600,imageheight="3in")`
+
+Specifying `ptable=TRUE` produces this information in a data frame,
+and calling `VennTable` shows additional information.
+To display the table in R Markdown, use this inline call:
+
+```{r, eval=FALSE}
+`r VennTable(vtree(FakeData,"Severity Age Pre Post",check.is.na=TRUE,ptable=TRUE),
+   markdown=TRUE)`
 ```
-![](`r filepath`){ height=3.5in }
 
-Specifying `ptable=TRUE` produces this information in a data frame:
+`r VennTable(vtree(FakeData,"Severity Age Pre Post",check.is.na=TRUE,ptable=TRUE),markdown=TRUE)`
 
-```{r}
-vtree(FakeData,"Severity Age Pre Post",check.is.na=TRUE,ptable=TRUE)
-```
+The rows `n` and `pct` represent the frequency and percentage
+of the total number of cases for each pattern of missingness,
+and the columns `N` and `pct` on the right-hand side represent the frequency and percentage
+of missingness for each variable.
 
-Note that the columns `n` and `pct` represent the frequency and percentage of the total number of cases.
-
-It may be useful to identify the ids for these patterns. Here the results are truncated to 15 characters:
+It may be useful to identify the ID numbers for these patterns.
+Here the results are truncated to 15 characters:
 
 ```{r}
 vtree(FakeData,"Severity Age Pre Post",check.is.na=TRUE,summary="id %list%%trunc=15%",
   ptable=TRUE)
 ```
-
-
-### Rudimentary CONSORT diagrams
-
-Consider the following fictitious data about a randomized controlled trial (RCT):
-
-```{r}
-FakeRCT
-```
-
-The CONSORT diagram (http://www.consort-statement.org/) shows the flow of patients through the study starting with
-those who meet eligibility criteria, then those who are randomized to each group, etc.
-It is easy to produce a rudimentary version of a CONSORT diagram in `vtree`.
-The key step is to prune branches for those who are *not* eligible, *not* randomized, etc.
-This can be done using the `keep` parameter:
-
-```{r,eval=FALSE}
-vtree(FakeRCT,"eligible randomized group followup analyzed",plain=TRUE,
-  keep=list(eligible="Eligible",randomized="Randomized",followup="Followed up"),
-  horiz=FALSE,showvarnames=FALSE,title="Assessed for eligibility")
-```
-```{r,echo=FALSE}
-v26 <- vtree(FakeRCT,"eligible randomized group followup analyzed",plain=TRUE,width=230,height=500,
-  keep=list(eligible="Eligible",randomized="Randomized",followup="Followed up"),
-  horiz=FALSE,showvarnames=FALSE,title="Assessed for eligibility")
-filepath <- grVizToPNG(v26,folder=PNGdir,width=800)
-```
-![](`r filepath`){ height=6in }
-
-
-Note that this does not include all of the additional information for a full CONSORT diagram
-(exclusion reasons and counts,
-as well as numbers of patients who received their allocated interventions,
-who discontinued intervention, and who were excluded from analysis).
-It does, however, provide the main flow information.
-
-Additional information can be obtained by examining the nodes for patients in the pruned branches.
-The `follow` parameter allows that:
-
-```{r,eval=FALSE}
-v7 <- vtree(FakeRCT,"eligible randomized group followup analyzed",plain=TRUE,
-  follow=list(eligible="Eligible",randomized="Randomized",followup="Followed up"),
-  horiz=FALSE,showvarnames=FALSE,title="Assessed for eligibility")
-```
-```{r, echo=FALSE}
-v27 <- vtree(FakeRCT,"eligible randomized group followup analyzed",plain=TRUE,width=400,height=500,
-  follow=list(eligible="Eligible",randomized="Randomized",followup="Followed up"),
-  horiz=FALSE,showvarnames=FALSE,title="Assessed for eligibility")
-filepath <- grVizToPNG(v27,folder=PNGdir,width=800)
-```
-![](`r filepath`){ height=6in }
-
-Finally, it may be useful to see the identification numbers in each node.
-This can be done using the `summary` parameter with the `%list%` code.
-Since IDs are not as useful in the root note, the `%noroot%` code is also specified here:
-
-```{r, eval=FALSE}
-vtree(FakeRCT,"eligible randomized group followup analyzed",plain=TRUE,
-  follow=list(eligible="Eligible",randomized="Randomized",followup="Followed up"),
-  horiz=FALSE,showvarnames=FALSE,title="Assessed for eligibility",
-  summary="id \nid: %list% %noroot%")
-```
-```{r, echo=FALSE}
-v28 <- vtree(FakeRCT,"eligible randomized group followup analyzed",plain=TRUE,width=500,height=600,
-  follow=list(eligible="Eligible",randomized="Randomized",followup="Followed up"),
-  horiz=FALSE,showvarnames=FALSE,title="Assessed for eligibility",
-  summary="id \nid: %list% %noroot%")
-filepath <- grVizToPNG(v28,folder=PNGdir,width=800)
-```
-![](`r filepath`){ height=6in }
-
 
 
 ## REDCap checkboxes {#REDCapCheckboxes}
@@ -1172,7 +1144,9 @@ but when the dataset is exported,
 individual variables `IceCream___1` (representing Chocolate), 
 `IceCream___2` (Vanilla), and `IceCream___3` (Strawberry) are created.
 When the dataset is read into R,
-the names of the flavours are embedded in the `attributes` of these variables.
+the names of the flavors are embedded in the `attributes` of these variables.
+
+### prefix `stem:`
 
 `vtree` includes a feature designed to make REDCap checkbox variables easier to use.
 Instead of typing:
@@ -1197,32 +1171,21 @@ An especially convenient way to display checkbox variables with `vtree` is:
 vtree(MyREDCapData,"stem:IceCream",pattern=TRUE,showroot=FALSE)
 ```
 
+### prefix `rc:`
 
+Alternatively, if you wish to only examine specific REDCap checkbox items,
+the `rc:` prefix can be used.
+For example to examine results for just Chocolate and Strawberry:
 
-## Additional Graphviz customization
-
-`vtree` has three additional parameters to access GraphViz attributes: `graphattr` (for graph attributes), `nodeattr` (node attributes), and `edgeatttr` (edge attributes).
-A full list of Graphviz attributes is [available](https://www.graphviz.org/doc/info/attrs.html).
-
-For example, two edge attributes are `arrowhead`,
-which specifies the type of arrow,
-and `penwidth`, which specifies the thickness of the edge (in points).
-(Note that `penwidth` is also a node attribute.)
-To draw a variable tree without any arrows on the edges and with thick edges, use:
-```{r,eval=FALSE}
-vtree(FakeData,"Severity",edgeattr="arrowhead=none penwidth=4",sameline=TRUE)
+```{r, eval=FALSE}
+vtree(MyREDCapData,"rc:IceCream___1 rc:IceCream___3",pattern=TRUE,showroot=FALSE)
 ```
- 
-The minimum width of nodes (in inches) can be specified using the node attribute `width`:
-```{r,eval=FALSE}
-vtree(FakeData,"Severity",nodeattr="width=2",sameline=TRUE)
-```
- 
 
 
 ## Examining the DOT script generated by `vtree`
 
-Specifying `getscript=TRUE` lets you capture the DOT script representing a flowchart.
+Specifying `getscript=TRUE` lets you capture the DOT script representing a variable tree.
+(DOT is a graph description language used by Graphviz, which is used by DiagrammeR, which is used by `vtree`!).
 Here is an example:
 
 ```{r, comment=""}
@@ -1231,7 +1194,8 @@ cat(dotscript)
 ```
 
 If you wish to directly edit this code,
-it can can be pasted into one of these online Graphviz editors:
+it can can be pasted into an online Graphviz editor,
+for example:
 
 https://dreampuf.github.io/GraphvizOnline
 
@@ -1239,30 +1203,235 @@ http://magjac.com/graphviz-visual-editor/
 
 
 
+# Ways to call vtree
+
+`vtree` behaves differently depending on the context in which it is called.
+
+
+## Calling vtree interactively 
+
+* If `vtree` is called interactively in RStudio, it displays the variable tree in the Viewer window.
+
+* If `vtree` is called interactively from the RGui console
+(i.e. from R outside of RStudio),
+it displays the variable tree in a browser window.
+
+
+## Calling vtree from R Markdown {#embeddingInRmarkdown}
+
+`vtree` has a number of special features when called from R Markdown
+By default, when `vtree` is called from R Markdown,
+it generates a PNG image file.
+
+Here's how it does that. `vtree` uses the `DiagrammeR` package,
+which automatically generates an htmlwidget for display in HTML,
+using the [htmlwidgets](https://www.htmlwidgets.org/) framework.
+Then `vtree` converts the htmlwidget into a PNG. 
+ 
+### Generating PNG files
+
+PNG files are useful because they allow you to display variable trees in Microsoft Word documents,
+and also because HTML files that use htmlwidgets can get large,
+and if they contain several widgets they can be slow to load.
+
+If `vtree` is called while an R Markdown file is being knitted,
+it generates a PNG file and automatically embeds it into the knitted document.
+The resolution of the PNG file in pixels is determined by parameters `pxwidth` and `pxheight`.
+If neither is specified, `pxwidth` is automatically set to 2000,
+which provides good resolution for a printed page.
+The height of the image in the R Markdown output document can be specified 
+using the `imageheight` parameter,
+for example `imageheight="4in"` for a 4-inch image.
+There is also an `imagewidth` parameter.
+If neither is specified, `imageheight` is automatically set to 3 inches.
+
+The PNG file is stored in the folder specified by the `folder` parameter,
+or if not specified, a temporary folder will be used.
+Successive PNG files are named `vtree1.png`, `vtree2.png`, 
+and so forth and are stored in the  folder.
+During knitting, `vtree` uses the `options` function in base R to store
+a variable called `vtcount` to count the PNG files,
+and a variable called `vtfolder` to identify the fodler where they will be stored.
+
+To call `vtree` in R Markdown, you can use inline code:
+
+```{r, eval=FALSE}
+`r vtree(FakeData,"Sex Severity")`
+```
+
+Or you can use a code chunk:
+
+````
+`r ''````{r, results="asis"}
+cat(vtree(FakeData,"Sex Severity"))
+```
+````
+
+One advantage of code chunks is that they can also be run interactively
+(for example within RStudio, by clicking on the green arrow at the top right of a code chunk).
+
+
+### Generating an htmlwidget in an HTML document
+
+When knitting to an HTML document, 
+an htmlwidget can be used rather than embedding a PNG file.
+(In fact PNG files are generated from htmlwidgets via SVG format.)
+To use an htmlwidget instead of a PNG file, you can use inline code:
+
+```{r, eval=FALSE}
+`r vtree(FakeData,"Severity Sex",pngknit=FALSE)`
+```
+
+Or a code chunk:
+
+````
+`r ''````{r}
+vtree(FakeData,"Severity Sex",pngknit=FALSE)
+```
+````
+
+Note the differences between this and the code chunk (in the previous section) to produce a PNG file:
+(1) you specify `pngknit=FALSE`,
+(2) you don't specify the chunk option `results="asis"`,
+and (3) you don't put `cat` around the call to `vtree`.
+
+
+# Generating a data frame by specifying subset sizes {#GeneratingDataFrames}
+
+`vtree` is designed to generate a variable tree based on a data frame.
+However, sometimes no data frame is available, but the sizes of subsets are known.
+
+The `build.data.frame` function allows you to build a data frame by specifying the size of subsets.
+Here's an example involving pets:
+
+```{r}
+build.data.frame(
+  c("pet","breed","size"),
+  list("dog","golden retriever","large",5),
+  list("cat","tabby","small",2))
+```
+
+In this case there are five large golden retrievers and 2 small tabby cats.
+Although a data frame like this could easily be created without using `build.data.frame`,
+it’s a different situation when the counts are large.
+For example:
+
+```{r, eval=FALSE}
+vtree(build.data.frame(
+  c("pet","breed","size"),
+  list("dog","golden retriever","large",5),
+  list("cat","tabby","small",2),
+  list("dog","Dalmation","various",101),
+  list("cat","Abyssinian","small",5),
+  list("cat","Abyssinian","large",22),
+  list("cat","tabby","large",86)))
+```
+
+`r vtree(build.data.frame(
+  c("pet","breed","size"),
+  list("dog","golden retriever","large",5),
+  list("cat","tabby","small",2),
+  list("dog","Dalmation","various",101),
+  list("cat","Abyssinian","small",5),
+  list("cat","Abyssinian","large",22),
+  list("cat","tabby","large",86)),
+  imagewidth="4in",pxwidth=800)`
+
+
+# Examples
+
+## Rudimentary CONSORT diagrams
+
+Consider the following fictitious data about a randomized controlled trial (RCT):
+
+```{r}
+FakeRCT
+```
+
+The CONSORT diagram (http://www.consort-statement.org/) shows the flow of patients through the study,
+starting with those who meet eligibility criteria,
+then those who are randomized, etc.
+It is easy to produce a rudimentary version of a CONSORT diagram in `vtree`.
+The key step is to prune branches for those who are *not* eligible, *not* randomized, etc.
+This can be done using the `keep` parameter:
+
+```{r,eval=FALSE}
+vtree(FakeRCT,"eligible randomized group followup analyzed",plain=TRUE,
+  keep=list(eligible="Eligible",randomized="Randomized",followup="Followed up"),
+  horiz=FALSE,showvarnames=FALSE,title="Assessed for eligibility")
+```
+
+`r vtree(FakeRCT,"eligible randomized group followup analyzed",plain=TRUE,
+  keep=list(eligible="Eligible",randomized="Randomized",followup="Followed up"),
+  horiz=FALSE,showvarnames=FALSE,title="Assessed for eligibility",
+  width=230,height=500,pxwidth=400,imageheight="6in")`
+  
+
+Note that this does not include all of the additional information for a full CONSORT diagram
+(exclusion reasons and counts,
+as well as numbers of patients who received their allocated interventions,
+who discontinued intervention, and who were excluded from analysis).
+It does, however, provide the main flow information.
+
+Additional information can be obtained by viewing the nodes for patients in the 
+pruned branches (but not their descendants).
+The `follow` parameter makes that easy:
+
+```{r,eval=FALSE}
+vtree(FakeRCT,"eligible randomized group followup analyzed",plain=TRUE,
+  follow=list(eligible="Eligible",randomized="Randomized",followup="Followed up"),
+  horiz=FALSE,showvarnames=FALSE,title="Assessed for eligibility")
+```
+
+`r vtree(FakeRCT,"eligible randomized group followup analyzed",plain=TRUE,
+  follow=list(eligible="Eligible",randomized="Randomized",followup="Followed up"),
+  horiz=FALSE,showvarnames=FALSE,title="Assessed for eligibility",
+  width=400,height=500,pxwidth=600,imageheight="6in")`
+
+Finally, it may be useful to see the ID numbers in each node.
+This can be done using the `summary` parameter with the `%list%` code.
+Since IDs are less useful in the root note,
+the `%noroot%` code is also specified here:
+
+```{r, eval=FALSE}
+vtree(FakeRCT,"eligible randomized group followup analyzed",plain=TRUE,
+  follow=list(eligible="Eligible",randomized="Randomized",followup="Followed up"),
+  horiz=FALSE,showvarnames=FALSE,title="Assessed for eligibility",
+  summary="id \nid: %list% %noroot%")
+```
+
+`r vtree(FakeRCT,"eligible randomized group followup analyzed",plain=TRUE,
+  follow=list(eligible="Eligible",randomized="Randomized",followup="Followed up"),
+  horiz=FALSE,showvarnames=FALSE,title="Assessed for eligibility",
+  summary="id \nid: %list% %noroot%",
+  width=500,height=600,pxwidth=700,imageheight="6in")`
+
+
 ## Examples using R datasets {#RdatasetExamples}
 
-The R datasets package is loaded in R by default.
-The following datasets can be used to illustrate `vtree`.
+The `datasets` package is loaded in R by default.
+In the following section,
+`vtree` is applied to several of these data sets for illustrative purposes.
 Note that the variable trees generated by the commands below are not shown.
 The reader can try these commands to see what the variable trees look like,
 and experiment with many other possibilities.
 
 
-#### Esophageal cancer
+### Esophageal cancer
 
 The `esoph` data set
 (data from a case-control study of esophageal cancer in Ille-et-Vilaine, France), 
 has 88 different combinations of age group, alcohol consumption, and tobacco consumption.
-Let's consider examine the mean number of cases among patients
-aged 75 and older compared to the rest of the patients:
+Let's examine the total number of cases and the total number of controls
+among patients aged 75 and older compared to the rest of the patients:
 
 ```{r, eval=FALSE}
-vtree(esoph,"agegp=75+",
-  summary="ncases \nmean=%mean%%leafonly%",sameline=TRUE)
+vtree(esoph,"agegp=75+",sameline=TRUE,cdigits=0,
+  summary=c("ncases \ncases=%sum%%leafonly%","ncontrols  controls=%sum%%leafonly%"))
 ```
 
 
-#### Hair and eye color
+### Hair and eye color
 
 The `HairEyeColor` data set is an array representing a contingency table
 (also called a crosstab or crosstabulation).
@@ -1277,14 +1446,14 @@ hec <- crosstabToCases(HairEyeColor)
 ```
 
 There are a lot of combinations but let's say we are especially interested
-in green eyes (versus non-green eyes).
+in green eyes (as compared to non-green eyes).
 We can use the variable specification `Eye=Green` to do this: 
 ```{r, eval=FALSE}
-vtree(hec,"Hair Eye=Green Sex")
+vtree(hec,"Hair Eye=Green Sex",sameline=TRUE)
 ```
 
 
-#### Titanic
+### Titanic
 
 The `Titanic` dataset is a 4-dimensional array of counts.
 First, let's convert it to a dataframe of individuals:
@@ -1292,13 +1461,13 @@ First, let's convert it to a dataframe of individuals:
 titanic <- crosstabToCases(Titanic)
 ```
 
-We'll specify `sameline=TRUE` so that it fits a bit better:
+We'll specify `sameline=TRUE` so that the variable tree is a bit more compact:
 ```{r, eval=FALSE}
 vtree(titanic,"Class Sex Age",summary="Survived=Yes \n%pct% survived",sameline=TRUE)
 ```
 
 
-#### mtcars
+### mtcars
 
 The `mtcars` data set was extracted from the 1974 Motor Trend US magazine,
 and comprises fuel consumption and 10 aspects of automobile design and
@@ -1316,21 +1485,42 @@ rownames(mt) <- NULL
 
 Now let's look at the mean and standard deviation of horsepower (HP)
 by number of carburetors, nested within number of gears,
-and in turn nested within number of cylinders.
+and in turn nested within number of cylinders:
 
 ```{r, eval=FALSE}
-vtree(mt,"cyl gear carb",summary="hp \nmean (SD) HP %mean% (%SD%)%var=pattern%",pattern=TRUE)
+vtree(mt,"cyl gear carb",summary="hp \nmean (SD) HP %mean% (%SD%)")
+```
+
+The above shows the mean and SD of horsepower by
+(1) number of cylinders;
+(2) number of gears (within number of cylinders);
+and 
+(3) number of carburetors (within number of gears nested within number of cylinders).
+That's a lot of information.
+Suppose instead that we are only interested in number 3 above,
+i.e. all combinations of number of cylinders, number of gears, and number of carburetors.
+
+In that case, we can specify `ptable=TRUE`, 
+To make the table a little easier to read,
+set the number of digits for the mean and SD to be zero,
+and relabel the variables.
+
+```{r, eval=FALSE}
+vtree(mt,"cyl gear carb",summary="hp mean (SD) HP %mean% (%SD%)",
+  cdigits=0,labelvar=c(cyl="# cylinders",gear="# gears",carb="# carburetors"),
+  ptable=TRUE)
 ```
 
 We might also like to list the names of cars by number of carburetors
 nested within number of gears:
 
 ```{r, eval=FALSE}
-vtree(mt,"gear carb",summary="name \n%list%%noroot%",splitwidth=50)
+vtree(mt,"gear carb",summary="name \n%list%%noroot%",splitwidth=50,sameline=TRUE,
+  labelvar=c(gear="# gears",carb="# carburetors"))
 ```
+  
 
-
-#### UCBAdmissions
+### UCBAdmissions
 
 The `UCBAdmissions` data is consists of aggregate data on
 applicants to graduate school at Berkeley for the six largest departments in 1973
@@ -1359,29 +1549,42 @@ vtree(ucb,"Dept Gender",summary="Admit=Admitted \n%pct% admitted",sameline=TRUE)
 ```
 
 
-#### ChickWeight
+### ChickWeight
 
 The `ChickWeight` data set is from an experiment on the effect of diet on early growth of chicks.
 Let's look at the mean weight of chicks at birth (0 days of age) and 4 days of age,
-nested within type of diet. 
+nested within type of diet.
+A simple variable tree can be produced like this:
 
 ```{r, eval=FALSE}
 vtree(ChickWeight,"Diet Time",keep=list(Time=c("0","4")),summary="weight \nmean weight %mean%g")
 ```
 
-
-#### InsectSprays
-
-The `InsectSprays` data set contains
-counts of insects in agricultural experimental units treated with different insecticides.
-Let's look at the mean and standard deviation of those counts by insecticide.
+To make the display a little easier to read, relabel the nodes
+and the `Time` variable:
 
 ```{r, eval=FALSE}
-vtree(InsectSprays,"spray",summary="count \nmean (SD) count %mean% (%SD%)",splitwidth=50)
+vtree(ChickWeight,"Diet Time",keep=list(Time=c("0","4")),
+  labelnode=list(
+    Diet=c("Diet 1"="1","Diet 2"="2","Diet 3"="3","Diet 4"="4"),
+    Time=c("0 days"="0","4 days"="4")),
+  labelvar=c(Time="Days since birth"),summary="weight \nmean weight %mean%g")
 ```
 
 
-#### ToothGrowth
+### InsectSprays
+
+The `InsectSprays` data set contains
+counts of insects in agricultural experimental units treated with different insecticides.
+Let's look at those counts by insecticide.
+
+```{r, eval=FALSE}
+vtree(InsectSprays,"spray",splitwidth=80,sameline=TRUE,
+  summary="count \ncounts: %list%%noroot%",cdigits=0)
+```
+
+
+### ToothGrowth
 
 The `ToothGrowth` data set contains
 the length of odontoblasts (cells responsible for tooth growth) in 60 guinea pigs.
@@ -1395,62 +1598,11 @@ Let's examine the percentage with length > 20 by dose nested within delivery met
 vtree(ToothGrowth,"supp dose",summary="len>20 \n%pct% length > 20")
 ```
 
-
-
-# Saving to PNG files
-
-`vtree` uses the `DiagrammeR` package (which in turn is built on the open source graph visualization software,  `Graphviz`).
-
-DiagrammeR (and hence `vtree`) automatically renders to HTML
-using the [htmlwidgets](https://www.htmlwidgets.org/) framework
-(for example, in the RStudio Viewer pane, or from R in a browser window).
-However it is sometimes useful to generate a graphics file.
-For example, to include a variable tree in a Microsoft Word document,
-you need to create a PNG file.
-Another reason to generate a PNG file is that HTML files that use `htmlwidgets` can be large,
-and if they contain several widgets they can be slow to load.
-The function `grVizToPNG` solves this problem by converting a variable tree into a PNG file.
-
-## The `grVizToPNG` function
-
-Suppose you saved the output of a call to `vtree` to an object called `example1`:
+To make the display a little easier to read, relabel the nodes
+and the `Time` variable:
 
 ```{r, eval=FALSE}
-example1 <- vtree(FakeData,"Severity Sex")
-```
-
-You can use `grVizToPNG` to create a PNG file called `example1.png` like this:
-
-```{r, eval=FALSE}
-grVizToPNG(example1)
-```
-
-Notes:
-
-* The name of the graphics file (`example1.png`) is automatically derived from the name of the object (`example1`).
-
-* The `width` or `height` arguments can be used to override the default resolution. For example, specifying `width=3000` results in a fairly high-resolution image.
-
-* Before creating the PNG file, `grVizToPNG` first creates an SVG file. But Microsoft Word cannot handle SVG files, which is why a PNG file must be created.
-
-* To keep things tidy, you can also specify a folder (say a subfolder of the working directory) where the PNG and SVG files will be stored. To do this, specify this argument: `folder="MyFolder"`.
-
-
-## Embedding a PNG image into R Markdown output
-
-Suppose you are using R Markdown,
-and wish to embed the PNG image generated by calling `grVizToPNG` into your output
-(for example a Word document).
-If you want the image scaled to, say, 3 inches tall, add this code inline (i.e. *not* in a code chunk):
-
-```{r, highlight=FALSE, eval=FALSE}
-![](example1.png){ height=3in }
-```
-
-If, in your call to `grVizToPNG`,
-you specified that graphics files should be stored in a subfolder called `MyFolder`,
-use the following code:
-
-```{r, highlight=FALSE, eval=FALSE}
-![](MyFolder/example1.png){ height=3in }
+vtree(ToothGrowth,"supp dose",summary="len>20 \n%pct% length > 20",
+  labelvar=c("supp"="Supplement type","dose"="Dose (mg/day)"),
+  labelnode=list(supp=c("Vitamin C"="VC","Orange Juice"="OJ")))
 ```

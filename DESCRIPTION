@@ -1,7 +1,7 @@
 Package: vtree
 Type: Package
 Title: Display Information About Nested Subsets of a Data Frame
-Version: 2.0.0
+Version: 3.0.0
 Depends: R (>= 2.10)
 Author: Nick Barrowman
 Maintainer: Nick Barrowman <nbarrowman@cheo.on.ca>
@@ -14,6 +14,6 @@ VignetteBuilder: knitr
 Suggests: knitr, rmarkdown, ggplot2, testthat (>= 2.1.0)
 Imports: DiagrammeR, DiagrammeRsvg, rsvg
 NeedsCompilation: no
-Packaged: 2019-05-15 19:48:00 UTC; nbarrowman
+Packaged: 2019-10-14 20:09:16 UTC; nick
 Repository: CRAN
-Date/Publication: 2019-05-15 20:10:04 UTC
+Date/Publication: 2019-10-14 20:30:02 UTC

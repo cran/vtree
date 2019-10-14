@@ -1,3 +1,38 @@
+# vtree 3.0.0
+
+## Changes
+
+* Extensive revision of vignette.
+
+## Bug fixes
+
+* Fixed a bug that occurred when `pattern=TRUE` and a single variable was specified.
+
+* Fixed a bug that occurred when `showvarnames=FALSE` but `labelvar` was set.
+
+## New features
+
+* The `keep` parameter will not prune missing value nodes when `vp=TRUE`.
+
+* There is a new summary code, `%sum%`, to show the sum of values.
+
+* `prunesmaller` parameter to remove nodes with small counts.
+
+* In variable specifications, `*` matches multiple variable name endings and `#` matches variable names ending with numeric digits.
+
+* When called while knitting an R Markdown document, PNG files are now automatically generated and embedded.
+
+* `pngknit=FALSE` disables PNG generation while knitting. Returns an `htmlwidget` instead.
+
+* The new function `VennTable` reformats a pattern table output by `vtree` for indicator (0/1) variables.
+
+* The new function `build.data.frame` makes it easy to create a data frame for use with vtree.
+
+* If no variable names are provided, `vtree` will use, in order, all of the variables in the data frame.
+
+* Multi-variable calculations like `x/y` can be used in the argument of the `summary` parameter.
+
+
 # vtree 2.0.0
 
 ## Changes

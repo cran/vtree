@@ -6,15 +6,15 @@
 \usage{
 vtree(z, vars, splitspaces = TRUE, prune = list(),
   prunebelow = list(), keep = list(), follow = list(),
-  prunelone = NULL, pruneNA = FALSE, labelnode = list(),
-  tlabelnode = NULL, labelvar = NULL, varminwidth = NULL,
-  varminheight = NULL, varlabelloc = NULL, fillcolor = NULL,
-  fillnodes = TRUE, NAfillcolor = "white", rootfillcolor = "#EFF3FF",
-  palette = NULL, gradient = TRUE, revgradient = FALSE,
-  singlecolor = 2, colorvarlabels = TRUE, title = "",
-  sameline = FALSE, Venn = FALSE, check.is.na = FALSE, seq = FALSE,
-  pattern = FALSE, ptable = FALSE, showroot = TRUE, text = list(),
-  ttext = list(), plain = FALSE, squeeze = 1,
+  prunelone = NULL, pruneNA = FALSE, prunesmaller = NULL,
+  labelnode = list(), tlabelnode = NULL, labelvar = NULL,
+  varminwidth = NULL, varminheight = NULL, varlabelloc = NULL,
+  fillcolor = NULL, fillnodes = TRUE, NAfillcolor = "white",
+  rootfillcolor = "#EFF3FF", palette = NULL, gradient = TRUE,
+  revgradient = FALSE, singlecolor = 2, colorvarlabels = TRUE,
+  title = "", sameline = FALSE, Venn = FALSE, check.is.na = FALSE,
+  seq = FALSE, pattern = FALSE, ptable = FALSE, showroot = TRUE,
+  text = list(), ttext = list(), plain = FALSE, squeeze = 1,
   shownodelabels = TRUE, showvarnames = TRUE, showlevels = TRUE,
   showpct = TRUE, showlpct = TRUE, showcount = TRUE,
   showlegend = FALSE, varnamepointsize = 18, HTMLtext = FALSE,
@@ -23,9 +23,11 @@ vtree(z, vars, splitspaces = TRUE, prune = list(),
   vp = TRUE, horiz = TRUE, summary = "", runsummary = NULL,
   retain = NULL, width = NULL, height = NULL, graphattr = "",
   nodeattr = "", edgeattr = "", color = c("blue", "forestgreen",
-  "red", "orange", "pink"), colornodes = FALSE, showempty = FALSE,
-  rounded = TRUE, nodefunc = NULL, nodeargs = NULL,
-  choicechecklist = TRUE, parent = 1, last = 1, root = TRUE)
+  "red", "orange", "pink"), colornodes = FALSE, mincount = 1, maxcount,
+  showempty = FALSE, rounded = TRUE, nodefunc = NULL,
+  nodeargs = NULL, choicechecklist = TRUE, pxwidth, pxheight,
+  imagewidth, imageheight, folder, pngknit = TRUE, as.if.knit = FALSE,
+  parent = 1, last = 1, root = TRUE)
 }
 \arguments{
 \item{z}{Required: Data frame, or a single vector.}
@@ -55,12 +57,14 @@ The other nodes will be pruned.}
 \item{follow}{Like \code{keep} but specifies which nodes to "follow",
 i.e. which nodes' \emph{descendants} to keep.}
 
-\item{prunelone}{A vector of values specifying "lone nodes" (of \emph{any} variable) to prune.
-A lone node is a node that has no siblings.}
+\item{prunelone}{(Deprecated) A vector of values specifying "lone nodes" (of \emph{any} variable) to prune.
+A lone node is a node that has no siblings (an "only child").}
 
-\item{pruneNA}{Prune all missing values?
-This should be used carefully because "valid" percentages
+\item{pruneNA}{(Deprecated) Prune all missing values?
+This is problematic because "valid" percentages
 are hard to interpret when NAs are pruned.}
+
+\item{prunesmaller}{Prune any nodes with count less than specified number.}
 
 \item{labelnode}{List of vectors used to change how values of variables are displayed.
 The name of each element of the
@@ -265,6 +269,11 @@ available to execute the functions in \code{runsummary}.}
 
 \item{colornodes}{Color the node outlines?}
 
+\item{mincount}{Minimum count to include in a pattern tree or pattern table.}
+
+\item{maxcount}{Maximum count to include in a pattern tree or pattern table.
+(Overrides mincount.)}
+
 \item{showempty}{Show nodes that do not contain any observations?}
 
 \item{rounded}{Use rounded boxes for nodes?}
@@ -277,6 +286,30 @@ specified by \code{nodefunc}.}
 \item{choicechecklist}{When REDCap checklists are specified using the \code{stem:} syntax,
 automatically extract the names of choices and use them as variable names?}
 
+\item{pxwidth}{Width in pixels of the PNG bitmap to be rendered
+when \code{vtree} is called from R Markdown.
+If neither \code{pxwidth} nor \code{pxheight} is specified,
+\code{pxwidth} is automatically set to 2000 pixels.}
+
+\item{pxheight}{Height in pixels of the PNG bitmap to be rendered
+when \code{vtree} is called from R Markdown.}
+
+\item{imagewidth}{A character string specifying the width of the PNG image
+to be rendered when \code{vtree} is called from R Markdown,
+e.g. \code{"4in"}}
+
+\item{imageheight}{A character string specifying the height of the PNG image
+to be rendered when \code{vtree} is called from R Markdown,
+e.g. \code{"5in"}.
+If neither \code{imageheight} nor \code{imagewidth} is specified,
+\code{imageheight} is set to 3 inches.}
+
+\item{folder}{Optional path to a folder where the PNG file should stored}
+
+\item{pngknit}{Generate a PNG file when called during knit?}
+
+\item{as.if.knit}{Behave as if called while knitting?}
+
 \item{parent}{Parent node number (Internal use only.)}
 
 \item{last}{Last node number (Internal use only.)}
@@ -284,21 +317,53 @@ automatically extract the names of choices and use them as variable names?}
 \item{root}{Is this the root node of the tree? (Internal use only.)}
 }
 \value{
-If \code{getscript=TRUE}, returns a character string of DOT script that describes the variable tree.
-If \code{getscript=FALSE}, returns an object of class \code{htmlwidget}
-that will intelligently print itself into HTML in a variety of contexts
-including the R console, within R Markdown documents, and within Shiny output bindings.
+\itemize{
+  \item If \code{ptable=TRUE}, a data frame representing a pattern table is returned.
+  \item Otherwise, if \code{getscript=TRUE}, a character string is returned,
+        consisting of a DOT script that describes the variable tree.
+  \item If \code{getscript=FALSE}, and knitting is not taking place
+        (or knitting is taking place and \code{pngknit=FALSE}),
+        an object of class \code{htmlwidget} is returned (see \link[DiagrammeR]{DiagrammeR}).
+        It will intelligently print itself into HTML in a variety of contexts
+        including the R console, within R Markdown documents, and within Shiny output bindings.
+  \item If \code{getscript=FALSE} and knitting is taking place and \code{pngknit=TRUE},
+        pandoc markdown code is returned, 
+        consisting of a command to embed a PNG file with fully-specified path.
+}
 }
 \description{
 vtree is a tool for drawing variable trees.
 Variable trees display information about nested subsets of a data frame,
 in which the subsetting is defined by the values of categorical variables.
 }
+\section{R Markdown}{
+
+As noted in the \strong{Value} section above,
+\code{vtree} has special support for R Markdown.
+
+By default, when knitting an R Markdown file,
+\code{vtree} generates PNG files and embeds them automatically in the output document.
+This feature is needed when knitting to a \code{.docx} file.
+When knitting to an HTML file, it is not necessary to generate PNG files.
+Rather, HTML can directly display htmlwidgets.
+To prevent generation of PNG files, specify \code{pngknit=FALSE}.
+Note, however, that there are some advantages to embedding PNG files in HTML.
+For example, with HTML files including multiple htmlwidgets, some browsers poorly.
+
+When PNG files are generated, they are stored by default in a temporary folder.
+The folder can also be specified using the \code{folder} parameter.
+(The option \code{vtree_folder} is used to automatically keep track of this.)
+Successive PNG files generated by an R Markdown file
+are named \code{vtree1.png}, \code{vtree2.png}, etc.
+(The option \code{vtree_count} is used to automatically keep track of this.)
+}
+
 \section{Summary codes}{
 
 \itemize{
  \item{\code{\%mean\%} }{mean}
  \item{\code{\%SD\%} }{standard deviation}
+ \item{\code{\%sum\%} }{sum}
  \item{\code{\%min\%} }{minimum}
  \item{\code{\%max\%} }{maximum}
  \item{\code{\%pX\%} }{Xth percentile, e.g. p50 means the 50th percentile}
@@ -307,6 +372,7 @@ in which the subsetting is defined by the values of categorical variables.
  \item{\code{\%npct\%} }{number and percentage of \code{TRUE} values}
  \item{\code{\%list\%} }{list of the individual values}
  \item{\code{\%mv\%} }{the number of missing values}
+ \item{\code{\%nonmv\%} }{the number of non-missing values}
  \item{\code{\%v\%} }{the name of the variable}
  \item{\code{\%noroot\%} }{flag: Do not show summary in the root node.}
  \item{\code{\%leafonly\%} }{flag: Only show summary in leaf nodes.}
@@ -356,6 +422,18 @@ Sequential palettes from Color Brewer:
 }
 
 \examples{
+
+# Call to vtree 
+vtree(FakeData,"Sex Severity")
+
+# R Markdown inline call to vtree
+# `r vtree(FakeData,"Sex Severity")`
+
+# R Markdown call to vtree in a code chunk 
+# ```{r, results="asis"}
+# cat(vtree(z,"Sex Severity"))
+# ```
+
 # A single-level hierarchy
 vtree(FakeData,"Severity")
 

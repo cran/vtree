@@ -55,14 +55,15 @@
 #'                         identifies the values of the variable (i.e. the nodes) to prune.
 #' @param prunebelow       Like \code{prune} but instead of pruning the specified nodes,
 #'                         their descendants are pruned.
+#' @param prunesmaller     Prune any nodes with count less than specified number.
 #' @param keep             Like \code{prune} but specifies which nodes to \emph{keep}.
 #'                         The other nodes will be pruned.
 #' @param follow           Like \code{keep} but specifies which nodes to "follow",
 #'                         i.e. which nodes' \emph{descendants} to keep.
-#' @param prunelone        A vector of values specifying "lone nodes" (of \emph{any} variable) to prune.
-#'                         A lone node is a node that has no siblings.
-#' @param pruneNA          Prune all missing values?
-#'                         This should be used carefully because "valid" percentages
+#' @param prunelone        (Deprecated) A vector of values specifying "lone nodes" (of \emph{any} variable) to prune.
+#'                         A lone node is a node that has no siblings (an "only child").
+#' @param pruneNA          (Deprecated) Prune all missing values?
+#'                         This is problematic because "valid" percentages
 #'                         are hard to interpret when NAs are pruned.
 #' @param sameline         Display node labels on the same line as the count and percentage?
 #' @param gradient         Use gradients of fill color across the values of each variable?
@@ -193,11 +194,67 @@
 #' @param parent           Parent node number (Internal use only.)
 #' @param last             Last node number (Internal use only.)
 #' @param root             Is this the root node of the tree? (Internal use only.)
+#' @param mincount         Minimum count to include in a pattern tree or pattern table.
+#' @param maxcount         Maximum count to include in a pattern tree or pattern table.
+#'                         (Overrides mincount.)
+#' @param pxwidth          Width in pixels of the PNG bitmap to be rendered
+#'                         when \code{vtree} is called from R Markdown.
+#'                         If neither \code{pxwidth} nor \code{pxheight} is specified,
+#'                         \code{pxwidth} is automatically set to 2000 pixels.
+#' @param pxheight         Height in pixels of the PNG bitmap to be rendered
+#'                         when \code{vtree} is called from R Markdown.
+#' @param imagewidth       A character string specifying the width of the PNG image
+#'                         to be rendered when \code{vtree} is called from R Markdown,
+#'                         e.g. \code{"4in"}
+#' @param imageheight      A character string specifying the height of the PNG image
+#'                         to be rendered when \code{vtree} is called from R Markdown,
+#'                         e.g. \code{"5in"}.
+#'                         If neither \code{imageheight} nor \code{imagewidth} is specified,
+#'                         \code{imageheight} is set to 3 inches.
+#' @param folder           Optional path to a folder where the PNG file should stored
+#' @param as.if.knit       Behave as if called while knitting?
+#' @param pngknit          Generate a PNG file when called during knit?
 #'
+#' @return
+#' \itemize{
+#'   \item If \code{ptable=TRUE}, a data frame representing a pattern table is returned.
+#'   \item Otherwise, if \code{getscript=TRUE}, a character string is returned,
+#'         consisting of a DOT script that describes the variable tree.
+#'   \item If \code{getscript=FALSE}, and knitting is not taking place
+#'         (or knitting is taking place and \code{pngknit=FALSE}),
+#'         an object of class \code{htmlwidget} is returned (see \link[DiagrammeR]{DiagrammeR}).
+#'         It will intelligently print itself into HTML in a variety of contexts
+#'         including the R console, within R Markdown documents, and within Shiny output bindings.
+#'   \item If \code{getscript=FALSE} and knitting is taking place and \code{pngknit=TRUE},
+#'         pandoc markdown code is returned, 
+#'         consisting of a command to embed a PNG file with fully-specified path.
+#' }
+#'
+#' @section R Markdown:
+#' As noted in the \strong{Value} section above,
+#' \code{vtree} has special support for R Markdown.
+#' 
+#' By default, when knitting an R Markdown file,
+#' \code{vtree} generates PNG files and embeds them automatically in the output document.
+#' This feature is needed when knitting to a \code{.docx} file.
+#' When knitting to an HTML file, it is not necessary to generate PNG files.
+#' Rather, HTML can directly display htmlwidgets.
+#' To prevent generation of PNG files, specify \code{pngknit=FALSE}.
+#' Note, however, that there are some advantages to embedding PNG files in HTML.
+#' For example, with HTML files including multiple htmlwidgets, some browsers poorly.
+#'
+#' When PNG files are generated, they are stored by default in a temporary folder.
+#' The folder can also be specified using the \code{folder} parameter.
+#' (The option \code{vtree_folder} is used to automatically keep track of this.)
+#' Successive PNG files generated by an R Markdown file
+#' are named \code{vtree1.png}, \code{vtree2.png}, etc.
+#' (The option \code{vtree_count} is used to automatically keep track of this.)
+#' 
 #' @section Summary codes:
 #' \itemize{
 #'  \item{\code{\%mean\%} }{mean}
 #'  \item{\code{\%SD\%} }{standard deviation}
+#'  \item{\code{\%sum\%} }{sum}
 #'  \item{\code{\%min\%} }{minimum}
 #'  \item{\code{\%max\%} }{maximum}
 #'  \item{\code{\%pX\%} }{Xth percentile, e.g. p50 means the 50th percentile}
@@ -206,6 +263,7 @@
 #'  \item{\code{\%npct\%} }{number and percentage of \code{TRUE} values}
 #'  \item{\code{\%list\%} }{list of the individual values}
 #'  \item{\code{\%mv\%} }{the number of missing values}
+#'  \item{\code{\%nonmv\%} }{the number of non-missing values}
 #'  \item{\code{\%v\%} }{the name of the variable}
 #'  \item{\code{\%noroot\%} }{flag: Do not show summary in the root node.}
 #'  \item{\code{\%leafonly\%} }{flag: Only show summary in leaf nodes.}
@@ -247,13 +305,19 @@
 #'  \item{YlOrBr}
 #' }
 #'
-#' @return
-#' If \code{getscript=TRUE}, returns a character string of DOT script that describes the variable tree.
-#' If \code{getscript=FALSE}, returns an object of class \code{htmlwidget}
-#' that will intelligently print itself into HTML in a variety of contexts
-#' including the R console, within R Markdown documents, and within Shiny output bindings.
-#'
 #' @examples
+#' 
+#' # Call to vtree 
+#' vtree(FakeData,"Sex Severity")
+#' 
+#' # R Markdown inline call to vtree
+#' # `r vtree(FakeData,"Sex Severity")`
+#' 
+#' # R Markdown call to vtree in a code chunk 
+#' # ```{r, results="asis"}
+#' # cat(vtree(z,"Sex Severity"))
+#' # ```
+#'
 #' # A single-level hierarchy
 #' vtree(FakeData,"Severity")
 #'
@@ -283,7 +347,8 @@
 #' @export
 
 vtree <- function (z, vars, splitspaces=TRUE,
-  prune=list(), prunebelow = list(), keep=list(), follow=list(), prunelone=NULL,pruneNA=FALSE,
+  prune=list(), prunebelow = list(), keep=list(), follow=list(),
+  prunelone=NULL,pruneNA=FALSE,prunesmaller=NULL,
   labelnode = list(),tlabelnode=NULL,labelvar = NULL,
   varminwidth=NULL,varminheight=NULL,varlabelloc=NULL,
   fillcolor = NULL, fillnodes = TRUE,
@@ -313,9 +378,11 @@ vtree <- function (z, vars, splitspaces=TRUE,
   width=NULL,height=NULL,
   graphattr="",nodeattr="",edgeattr="",
   color = c("blue", "forestgreen", "red", "orange", "pink"), colornodes = FALSE,
+  mincount=1,maxcount,
   showempty = FALSE, rounded = TRUE,
   nodefunc = NULL, nodeargs = NULL, 
   choicechecklist = TRUE,
+  pxwidth,pxheight,imagewidth,imageheight,folder,pngknit=TRUE,as.if.knit=FALSE,
   parent = 1, last = 1, root = TRUE)
 {
 
@@ -379,6 +446,48 @@ vtree <- function (z, vars, splitspaces=TRUE,
         vars <- argname
     }
     
+    # Special case where vars is not provided
+    if (is.data.frame(z) && missing(vars)) {
+      vars <- names(z)
+    }
+    
+    if (length(vars)>30) 
+      stop(paste0(length(vars)," variables exceeds the current maximum of 30."))
+    
+    # Process * tag in variable names to expand list of variables
+    findstar <- grep("\\*$",vars)
+    if (length(findstar)>0) {
+      expandedvars <- c()
+      for (i in 1:length(vars)) {
+        if (i %in% findstar) {
+          stem <- sub("([^ ]+)\\*$","\\1",vars[i])
+          expanded_stem <- names(z)[grep(paste0(stem,".*$"),names(z))]
+          expandedvars <- c(expandedvars,expanded_stem)
+        } else {
+          expandedvars <- c(expandedvars,vars[i])
+        }
+      }
+      vars <- expanded_stem
+      if (length(vars)==0) stop("No variables match the specification.")
+    }    
+    
+    # Process # tag in variable names to expand list of variables ending in numeric digits
+    findstar <- grep("#$",vars)
+    if (length(findstar)>0) {
+      expandedvars <- c()
+      for (i in 1:length(vars)) {
+        if (i %in% findstar) {
+          stem <- sub("([^ ]+)\\#$","\\1",vars[i])
+          expanded_stem <- names(z)[grep(paste0(stem,"[0-9]+$"),names(z))]
+          expandedvars <- c(expandedvars,expanded_stem)
+        } else {
+          expandedvars <- c(expandedvars,vars[i])
+        }
+      }
+      vars <- expanded_stem
+      if (length(vars)==0) stop("No variables match the specification.")
+    }            
+     
     # Process = tag in variable names 
     findequal <- grep("=",vars)
     if (length(findequal)>0) {
@@ -477,7 +586,17 @@ vtree <- function (z, vars, splitspaces=TRUE,
           }
           if (choicechecklist) {
             for (j in 1:length(expanded_stem)) {
-              choice <- sub(".+\\(choice=(.+)\\)","\\1",attributes(z[[expanded_stem[j]]])$label)
+              rexp1 <- ".+\\(choice=(.+)\\)"
+              rexp2 <- ".+: (.+)"
+              lab <- attributes(z[[expanded_stem[j]]])$label
+              if (length(grep(rexp1,lab))>0) {
+                choice <- sub(rexp1,"\\1",lab)
+              } else
+              if (length(grep(rexp2,lab))>0) {
+                choice <- sub(rexp2,"\\1",lab)
+              } else {
+                stop("Could not find value of checklist item")
+              }
               z[[choice]] <- z[[expanded_stem[j]]]
               expandedvars <- c(expandedvars,choice)
             }
@@ -490,7 +609,39 @@ vtree <- function (z, vars, splitspaces=TRUE,
       }
       vars <- expandedvars
     }
-
+    
+    # Process rc: tag in variable names to handle single REDCap checklist items automatically
+    findtag <- grep("^rc:",vars)
+    if (length(findtag)>0) {
+      expandedvars <- c()
+      for (i in 1:length(vars)) {
+        if (i %in% findtag) {
+          rcvar <- sub("^rc:([^ ]+)$","\\1",vars[i])
+          if (choicechecklist) {
+            rexp1 <- ".+\\(choice=(.+)\\)"
+            rexp2 <- ".+: (.+)"
+            lab <- attributes(z[[rcvar]])$label
+            if (length(grep(rexp1,lab))>0) {
+              choice <- sub(rexp1,"\\1",lab)
+            } else
+            if (length(grep(rexp2,lab))>0) {
+              choice <- sub(rexp2,"\\1",lab)
+            } else {
+              stop("Could not find value of checklist item")
+            }
+            z[[choice]] <- z[[rcvar]]
+            expandedvars <- c(expandedvars,choice)
+          } else {
+            expandedvars <- c(expandedvars,rcvar)
+          }
+        } else {
+          expandedvars <- c(expandedvars,vars[i])
+        }
+      }
+      vars <- expandedvars
+    }    
+    
+    
     if (!missing(showlevels)) showvarnames <- showlevels
 
     allvars <- vars
@@ -499,7 +650,7 @@ vtree <- function (z, vars, splitspaces=TRUE,
     if (!all(summary=="")) {
       codevar <- gsub("^([^ ]+) (.+)$", "\\1", summary)
       
-      # Process = tag in variable names 
+      # Process = tag in variable names in summary argument
       findequal <- grep("=",codevar)
       if (length(findequal)>0) {
         for (i in 1:length(codevar)) {    
@@ -520,7 +671,7 @@ vtree <- function (z, vars, splitspaces=TRUE,
         }
       } 
       
-      # Process > tag in variable names
+      # Process > tag in variable names in summary argument
       findgt <- grep(">",codevar)
       if (length(findgt)>0) {
         for (i in 1:length(codevar)) {    
@@ -541,7 +692,7 @@ vtree <- function (z, vars, splitspaces=TRUE,
         }
       }
       
-      # Process < tag in variable names
+      # Process < tag in variable names in summary argument
       findlt <- grep("<",codevar)
       if (length(findlt)>0) {
         for (i in 1:length(codevar)) {    
@@ -560,8 +711,17 @@ vtree <- function (z, vars, splitspaces=TRUE,
             codevar[i] <- ltvar
           }
         }
-      }      
-
+      } 
+      
+      # If an element of codevar is not the name of a variable in z,
+      # perhaps it's an expression that can be evaluated in z
+      for (i in 1:length(codevar)) { 
+        if (!(codevar[i] %in% names(z))) {
+          derivedvar <- with(z,eval(parse(text=codevar[i],keep.source=FALSE))) 
+          z[[codevar[i]]] <- derivedvar
+        }
+      }
+      
       allvars <- c(allvars,codevar)
        
       #  if (!all(codevar %in% names(z))) {
@@ -580,11 +740,12 @@ vtree <- function (z, vars, splitspaces=TRUE,
       # allvars <- c(allvars,codevar)
     }
 
+
     # Add any extra variables needed
     allvars <- c(allvars,retain)
 
     numvars <- length(vars)
-
+    
     # Each element of the following list
     # is a matrix where the rows are the different hues (one for each variable).
     # The 1st matrix is for a single-valued variable,
@@ -809,6 +970,13 @@ vtree <- function (z, vars, splitspaces=TRUE,
         }
       }
       TAB <- table(PATTERN)
+      
+      if (!missing(maxcount)) {
+        TAB <- TAB[TAB<=maxcount]
+      } else {
+        TAB <- TAB[TAB>=mincount]
+      }
+      
       #TAB <- as.numeric(tab)
       #names(TAB) <- names(tab)
       if (showroot) {
@@ -817,14 +985,23 @@ vtree <- function (z, vars, splitspaces=TRUE,
         o <- order(as.numeric(TAB),tolower(names(TAB)),decreasing=TRUE)
         PATTERN_levels <- names(TAB)[o]
       }
+      
+      select <- PATTERN %in% PATTERN_levels
+      PATTERN <- PATTERN[select]
+      
+      z <- z[select,,drop=FALSE]
+      
+      #PATTERN[!(PATTERN) %in% PATTERN_levels] <- "Other"
+      #PATTERN_levels <- c(PATTERN_levels,"Other")
       PATTERN_values <- data.frame(matrix("",nrow=length(PATTERN_levels),ncol=length(vars)),
         stringsAsFactors=FALSE)
-      
+
       names(PATTERN_values) <- vars
       for (i in 1:length(PATTERN_levels)) {
+        patternRow <- z[PATTERN==PATTERN_levels[i],,drop=FALSE]
         for (j in 1:length(vars)) {
-          pat <- PATTERN_levels[i]
-          PATTERN_values[[vars[j]]][i] <- as.character(z[PATTERN==pat,vars[j]][1])
+          #browser()
+          PATTERN_values[[vars[j]]][i] <- as.character(patternRow[[vars[j]]][1])
         }
       }
       PATTERN <- factor(PATTERN,levels=PATTERN_levels)
@@ -1159,31 +1336,31 @@ vtree <- function (z, vars, splitspaces=TRUE,
 
   findvars <- names(labelvar) %in% z_names
   if (any(!findvars)) {
-      stop("The following variables named in labelvar were not found in the data frame: ",
-          paste(vars[!findvars], collapse = ", "))
+      stop("The following variables named in labelvar were not found in vars: ",
+          paste(names(labelvar)[!findvars], collapse = ", "))
   }
 
   findvars <- names(prunebelow) %in% z_names
   if (any(!findvars)) {
-      stop("The following variables named in prunebelow were not found in the data frame: ",
+      stop("The following variables named in prunebelow were not found in vars: ",
           paste(names(prunebelow)[!findvars], collapse = ", "))
   }
 
   findvars <- names(prune) %in% z_names
   if (any(!findvars)) {
-      stop("The following variables named in prune were not found in the data frame: ",
+      stop("The following variables named in prune were not found in vars: ",
           paste(names(prune)[!findvars], collapse = ", "))
   }
 
   findvars <- names(follow) %in% z_names
   if (any(!findvars)) {
-      stop("The following variables named in follow were not found in the data frame: ",
+      stop("The following variables named in follow were not found in vars: ",
           paste(names(follow)[!findvars], collapse = ", "))
   }
 
   findvars <- names(keep) %in% z_names
   if (any(!findvars)) {
-      stop("The following variables named in keep were not found in the data frame: ",
+      stop("The following variables named in keep were not found in vars: ",
           paste(names(keep)[!findvars], collapse = ", "))
   }
 
@@ -1259,8 +1436,9 @@ vtree <- function (z, vars, splitspaces=TRUE,
     shownodelabels=shownodelabels[vars[1]],
     showpct=showpct[vars[1]],
     showcount=showcount[vars[1]],
-    prunefull=prune[[vars[1]]],
+    prune=prune[[vars[1]]],
     prunelone=prunelone,
+    prunesmaller=prunesmaller,
     HTMLtext = HTMLtext, showvarnames = showvarnames,
     keep=keep[[vars[1]]],
     pruneNA=pruneNA,
@@ -1270,8 +1448,17 @@ vtree <- function (z, vars, splitspaces=TRUE,
     vp = vp, rounded = rounded, showroot=showroot)
   
   if (root & ptable) {
+    if (length(labelvar)>0) {
+      for (CNP in colnames(PATTERN_values)) {
+        if (CNP %in% names(labelvar)) {
+          for (i in 1:length(labelvar)) {
+            colnames(PATTERN_values)[colnames(PATTERN_values)==names(labelvar)[i]] <- labelvar[i]
+          }
+        }
+      }
+    }
     if (vars[1]=="pattern" | vars[1]=="sequence") {
-      patternTable <- data.frame(n=fc$n,pct=fc$pct,PATTERN_values)
+      patternTable <- data.frame(n=fc$n,pct=fc$pct,PATTERN_values,check.names=FALSE)
       if (length(summarytext)>0) {
         numsum <- max(sapply(summarytext,length))
         for (j in 1:numsum) {
@@ -1299,6 +1486,7 @@ vtree <- function (z, vars, splitspaces=TRUE,
   } else {
     prunebelowlevels <- NULL
   }
+  
   i <- 0
   for (varlevel in fc$levels) {
     TTEXT <- ttext
@@ -1337,7 +1525,12 @@ vtree <- function (z, vars, splitspaces=TRUE,
 
 
     i <- i + 1
-    if (!(varlevel %in% prunebelowlevels) & (is.null(followlevels) | (varlevel %in% followlevels))) {
+    condition_to_follow <- 
+      !(varlevel %in% prunebelowlevels) & 
+      (is.null(followlevels) | (varlevel %in% followlevels)) &
+      !(varlevel=="NA" & length(keep)>0 & !("NA" %in% keep[[CurrentVar]]))
+
+    if (condition_to_follow) {
       if (varlevel == "NA") {
           select <- is.na(z[[CurrentVar]])
       }
@@ -1355,7 +1548,8 @@ vtree <- function (z, vars, splitspaces=TRUE,
           showpct=showpct,
           showcount=showcount,
           sameline=sameline, showempty = showempty,
-          root = FALSE, prune=prune, prunebelow = prunebelow, labelvar = labelvar,
+          root = FALSE, prune=prune, prunebelow = prunebelow, prunesmaller=prunesmaller,
+          labelvar = labelvar,
           varminwidth = varminwidth, varminheight = varminheight, varlabelloc=varlabelloc,
           prunelone=prunelone,
           nodefunc = nodefunc, nodeargs = nodeargs, digits = digits,
@@ -1523,10 +1717,67 @@ vtree <- function (z, vars, splitspaces=TRUE,
       rownames(pt) <- NULL
       pt
     } else {    
-      showflow(fc, getscript = getscript, nodesep = nodesep,
+      flowchart <- showflow(fc, getscript = getscript, nodesep = nodesep,
         ranksep=ranksep, margin=margin, nodelevels = nodelevels, horiz = horiz,
         width=width,height=height,
         graphattr=graphattr,nodeattr=nodeattr,edgeattr=edgeattr)
+      
+      if (getscript || !pngknit) {
+        return(flowchart)
+      }
+      
+      if (!isTRUE(getOption('knitr.in.progress')) && !as.if.knit) {
+        print(flowchart)
+        return(invisible(flowchart))
+      }  
+      
+      if (is.null(getOption("vtree_count"))) {
+        options("vtree_count"=0)
+        if (missing(folder)) {
+          options("vtree_folder"=tempdir())
+        } else {
+          options("vtree_folder"=folder)
+        }        
+      }
+      
+      #browser()
+      options("vtree_count"=getOption("vtree_count")+1)
+
+      filename <- paste0("vtree",getOption("vtree_count"),".png")
+      
+      if (missing(pxheight)) {
+        if (missing(pxwidth)) {
+          grVizToPNG(flowchart,width=2000,filename=filename,folder=getOption("vtree_folder"))
+        } else {
+          grVizToPNG(flowchart,width=pxwidth,filename=filename,folder=getOption("vtree_folder"))
+        }
+      } else {
+        if (missing(pxwidth)) {
+          grVizToPNG(flowchart,height=pxheight,filename=filename,folder=getOption("vtree_folder"))
+        } else {
+          grVizToPNG(flowchart,width=pxwidth,height=pxheight,filename=filename,folder=getOption("vtree_folder"))
+        }
+      }  
+      
+      fullpath <- file.path(folder=getOption("vtree_folder"),filename)
+    
+      embedded <- paste0("![](",fullpath,")")
+    
+      if (missing(imageheight)) {
+        if (missing(imagewidth)) {
+          result <- paste0(embedded,"{ height=3in }")
+        } else {
+          result <- paste0(embedded,"{width=",imagewidth,"}")
+        }
+      } else {
+        if (missing(imagewidth)) {
+          result <- paste0(embedded,"{height=",imageheight,"}")
+        } else {
+          result <- paste0(embedded,"{width=",imagewidth," height=",imageheight,"}")
+        }
+      }
+      
+      result        
     }
   } else {
       fc
@@ -1535,846 +1786,18 @@ vtree <- function (z, vars, splitspaces=TRUE,
 
 
 
-showflow <- function(flow,getscript=FALSE,nodesep=0.5,ranksep=0.5,margin=0.2,
-nodelevels="",horiz=FALSE,width=NULL,height=NULL,
-graphattr="",nodeattr="",edgeattr="") {
-#
-# {show} a {flow}chart produced by flowcat or by hier.
-#
-# showscript Only show the script generated rather than displaying the flowchart? Useful for debugging.
-# nodesep    The nodesep graph attribute.
-# ranksep    The ranksep graph attribute.
-#
 
-  nodePart <- "node [fontname = Helvetica, fontcolor = black,shape = rectangle, color = black"
-  nodePart <- paste0(nodePart,",margin=",margin)
-  nodePart <- paste0(nodePart,ifelse(nodeattr=="","",","),nodeattr)
-  nodePart <- paste0(nodePart,"]\n")
 
-  graphPart <- paste0('graph [layout = dot, compound=true, nodesep=',nodesep,', ranksep=',ranksep,', fontsize=12')
-  graphPart <- paste0(graphPart,ifelse(graphattr=="","",","),graphattr)
-  graphPart <- paste0(graphPart,']\n')
 
-  script <- paste0(
-    'digraph vtree {\n',
-    graphPart,
-    nodePart)
 
-  if (horiz) {
-    script <- paste0(script,'rankdir=LR;\n')
-  }
 
-  script <- paste0(script,nodelevels)
 
-  edgePart <- '\nedge[style=solid'
-  edgePart <- paste0(edgePart,ifelse(edgeattr=="","",","),edgeattr)
-  edgePart <- paste0(edgePart,']\n')
 
-  script <- paste0(script,edgePart,
-    flow$edges,"\n\n",flow$labelassign,sep="\n")
 
-  script <- paste0(script,"\n}\n")
-  if (getscript) { return(script) }
-  flowchart <- DiagrammeR::grViz(script,width=width,height=height)
-  flowchart
-}
 
 
 
-flowcat <- function(z,root=TRUE,title="",parent=1,last=1,labels=NULL,tlabelnode=NULL,HTMLtext=FALSE,
-var,
-check.is.na=FALSE,
-labelvar=NULL,
-varminwidth=NULL,varminheight=NULL,varlabelloc=NULL,
-shownodelabels=TRUE,sameline=FALSE,
-prunefull=NULL,
-prunelone=NULL,
-keep=NULL,
-text=NULL,ttext=NULL,TopText="",showempty=FALSE,digits=0,cdigits=2,
-showpct=TRUE,
-showcount=TRUE,
-showvarnames=FALSE,
-pruneNA=FALSE,
-splitwidth=Inf,topcolor="black",color="blue",topfillcolor="olivedrab3",fillcolor="olivedrab2",
-vp=TRUE,rounded=FALSE,showroot=TRUE) {
-#
-# Write DOT code for a single-level {flow}chart of {cat}egories using the
-# DiagrammeR framework.
-#
-# https://en.wikipedia.org/wiki/DOT_(graph_description_language)
-#
 
-  if (HTMLtext) {
-    sepN <- "<BR/>"
-  } else {
-    sepN <- "\n"
-  }
 
-  if (is.na(shownodelabels)) shownodelabels <- TRUE
 
-  if (is.logical(z)) {
-    z <- factor(z, c("FALSE", "TRUE"))
-  }
 
-  categoryCounts <- table(z,exclude=NULL)
-  names(categoryCounts)[is.na(names(categoryCounts))] <- "NA"
-
-  # Pre-pend the parent node
-  categoryCounts <- c(length(z),categoryCounts)
-  names(categoryCounts)[1] <- title
-
-  # Use npct to calculate percentages, but don't use "valid percentages"
-  # since the denominator should always be the number in the parent node.
-  # npctString <- npct(z,includemiss=TRUE,vp=FALSE,pcs="%")
-  # If there are no missing values, don't include the NA category
-  # if (sum(is.na(z))==0) npctString <- npct(z,pcs="%")
-
-  if (vp & any(is.na(z))) {
-    cc <- categoryCounts[-1]
-    cc <- cc[names(cc)!="NA"]
-    if (length(cc)>0) {
-      npctString <- rep("",length(cc))
-      nString <- cc
-      if (showcount) {
-        npctString <- cc
-        if (showpct) npctString <- paste0(npctString," ")
-      }
-      pctString <- around(100*cc/sum(cc),digits)
-      if (showpct) {
-        npctString <- paste0(npctString,"(",pctString,"%)")
-      }
-    } else {
-      npctString <- NULL
-      nString <- NULL
-      pctString <- NULL
-    }
-    nString <- c(nString,categoryCounts["NA"])
-    if (showcount) {
-      npctString <- c(npctString,categoryCounts["NA"])
-    } else {
-      npctString <- c(npctString,"")
-    }
-  } else {
-    npctString <- rep("",length(categoryCounts[-1]))
-    nString <- categoryCounts[-1]
-    if (showcount) {
-      npctString <- categoryCounts[-1]
-      if (showpct) npctString <- paste0(npctString," ")
-    }
-    pctString <- around(100*categoryCounts[-1]/length(z),digits)
-    if (showpct) {
-      npctString <- paste0(npctString,"(",pctString,"%)")
-    }
-  }
-
-  npctString <- c(length(z),npctString)
-  nString <- c(length(z),nString)
-  pctString <- c("",pctString)
-  #names(npctString)[1] <- title
-
-  if (!showempty) {
-    s <- categoryCounts>0
-    categoryCounts <- categoryCounts[s]
-    npctString <- npctString[s]
-  }
-
-  if (!is.null(prunefull)) {
-    if (is.numeric(prunefull)) {
-      categoryCounts <- c(categoryCounts[1],categoryCounts[-1][-prunefull])
-      npctString <- c(npctString[1],npctString[-1][-prunefull])
-    } else {
-      matching <- names(categoryCounts)[-1] %in% prunefull
-      categoryCounts <- c(categoryCounts[1],categoryCounts[-1][!matching])
-      npctString <- c(npctString[1],npctString[-1][!matching])
-    }
-  }
-
-  if (!is.null(keep)) {
-    if (is.numeric(keep)) {
-      categoryCounts <- c(categoryCounts[1],categoryCounts[-1][keep])
-      npctString <- c(npctString[1],npctString[-1][keep])
-    } else {      
-      matching <- match(keep,names(categoryCounts)[-1])
-      matching <- matching[!is.na(matching)]
-      categoryCounts <- c(categoryCounts[1],categoryCounts[-1][matching])
-      npctString <- c(npctString[1],npctString[-1][matching])
-    }
-  }
-
-  if (pruneNA) {
-    m <- names(categoryCounts)[-1]!="NA"
-    categoryCounts <- c(categoryCounts[1],categoryCounts[-1][m])
-    npctString <- c(npctString[1],npctString[-1][m])
-  }
-
-  if (!is.null(prunelone)) {
-    if (length(categoryCounts[-1])==1) {
-      if (names(categoryCounts)[-1] %in% prunelone) {
-        categoryCounts <- categoryCounts[1]
-      }
-    }
-  }
-
-  # Number of new nodes to add to the tree
-  n <- length(categoryCounts)-1              # exclude the parent node
-
-  if (n>0) {
-    # Number the parent node and the additional nodes to be added
-    nodenum <- c(parent,last+(1:n))
-  } else {
-    nodenum <- parent
-  }
-  nodenames <- paste0("Node_",nodenum)
-
-  CAT <- names(categoryCounts)
-
-  FILLCOLOR <- fillcolor[match(CAT[-1],names(fillcolor))]
-
-  extraText <- rep("",length(CAT))
-
-  # Match extra text to nodes
-  if (TopText!="") extraText[1] <- TopText # paste0(sepN,TopText)
-  for (label in names(text)) {
-    if (label %in% names(categoryCounts)) {
-      m <- match(label,names(categoryCounts))
-      if (text[names(text)==label]!="") {
-        extraText[m] <- paste0("",text[names(text)==label])
-      }
-    }
-  }
-
-  if (length(ttext)>0) {
-    for (j in 1:length(ttext)) {
-      if (length(ttext[[j]])==2 && any(names(ttext[[j]])==var)) {
-        TTEXTposition <- CAT[-1] == ttext[[j]][names(ttext[[j]])==var]
-        extraText[-1][TTEXTposition] <- ttext[[j]]["text"]
-      }
-    }
-  }
-
-  if (length(tlabelnode)>0) {
-    for (j in 1:length(tlabelnode)) {
-      if (length(tlabelnode[[j]])==2 && any(names(tlabelnode[[j]])==var)) {
-        tlabelnode_position <- CAT[-1] == tlabelnode[[j]][names(tlabelnode[[j]])==var]
-        CAT[-1][tlabelnode_position] <- tlabelnode[[j]]["label"]
-      }
-    }
-  }
-  
-  displayCAT <- CAT
-  
-  if (HTMLtext) {
-    displayCAT <- splitlines(displayCAT,width=splitwidth,sp="<BR/>",at=" ")
-  } else {
-    displayCAT <- splitlines(displayCAT,width=splitwidth,sp="\n",at = c(" ", ".", "-", "+", "_", "=", "/"))
-  }
-
-  if (check.is.na) {
-    for (i in 2:length(displayCAT)) {
-      varname <- gsub("^MISSING_(.+)", "\\1", var)
-    }
-  }
-
-  # Relabel the nodes if labels have been specified
-  for (label in labels) {
-    if (label %in% names(categoryCounts)) {
-      m <- match(label,names(categoryCounts))
-      displayCAT[m] <- names(labels)[labels==label]
-    }
-  }
-
-  # Relabel the nodes if labelvar has been specified
-  if (!showvarnames) {
-    if (!is.null(labelvar)) {
-      if (!is.na(labelvar)) {
-        displayCAT[-1] <- paste0(labelvar,sepN,displayCAT[-1])
-      }
-    }
-  }
-
-  # Write DOT code for the edges
-  if (showroot) {
-    edgeVector <- paste0(nodenames[1],"->",nodenames[-1])
-    edges <- paste(edgeVector,collapse=" ")
-  } else {
-    edges <- ""
-  }
-
-  if (rounded) {
-    styleString <- ' style="rounded,filled"'
-  } else {
-    styleString <- ' style=filled'
-  }
-
-  #displayCAT <- CAT
-  
-  # Glue a space or a line break onto the non-empty elements of CAT
-  if (sameline) {
-    for (i in 1:length(displayCAT)) {
-      if (showcount || showpct || extraText[i]!="") {
-        if (displayCAT[i]!="") displayCAT[i] <- paste0(displayCAT[i],", ")
-      }
-    }
-  } else {
-    for (i in 1:length(displayCAT)) {
-      if (displayCAT[i]!="") displayCAT[i] <- paste0(displayCAT[i],sepN)
-    }
-  }
-
-  if (!shownodelabels) {
-    for (i in 2:length(displayCAT)) displayCAT[i] <- ""
-  }
-  
-  if (!HTMLtext) {
-    displayCAT <- convertToHTML(displayCAT)
-    extraText <- convertToHTML(extraText)
-  }
-  
-  # Write DOT code for assigning labels (using the DiagrammeR framework)
-  VARLABELLOC <- ""
-  if (!is.null(varlabelloc) && !is.na(varlabelloc)) VARLABELLOC <- paste0("labelloc=",varlabelloc)
-  VARMINWIDTH <- ""
-  if (!is.null(varminwidth) && !is.na(varminwidth)) VARMINWIDTH <- paste0("width=",varminwidth)
-  VARMINHEIGHT <- ""
-  if (!is.null(varminheight) && !is.na(varminheight)) VARMINHEIGHT <- paste0("height=",varminheight)
-  labelassign <- c()
-  if (root) {
-    if (showroot) {
-      if (title!="") displayCAT[1] <- paste0(displayCAT[1],"<BR/>")
-      labelassign <- paste(paste0(
-        nodenames[1],'[label=<',displayCAT[1],npctString[1],extraText[1],'> color=',topcolor,styleString,
-        ' fillcolor=<',topfillcolor,'>]'),collapse='\n')
-    }
-    labelassign <- paste0(labelassign,'\n',paste(paste0(
-      nodenames[-1],'[label=<',displayCAT[-1],npctString[-1],extraText[-1],'> color=',color,styleString,
-      ' fillcolor=<',FILLCOLOR,'>',VARLABELLOC,' ',VARMINWIDTH,' ',VARMINHEIGHT,']')),collapse='\n')
-  } else {
-    labelassign <- paste(paste0(
-      nodenames[-1],'[label=<',displayCAT[-1],npctString[-1],extraText[-1],'> color=',color,styleString,
-      ' fillcolor=<',FILLCOLOR,'>',VARLABELLOC,' ',VARMINWIDTH,' ',VARMINHEIGHT,']'),collapse='\n')
-  }
-
-  return(list(
-    value=CAT[-1],
-    n=as.numeric(nString[-1]),
-    pct=as.numeric(pctString[-1]),
-    npctString=npctString[-1],
-    extraText=extraText[-1],
-    levels=names(categoryCounts)[-1],
-    nodenum=nodenum[-1],
-    edges=edges,
-    labelassign=labelassign,
-    lastnode=nodenum[length(nodenum)]))
-}
-
-
-
-joinflow <- function(...) {
-#
-# {join} information (from the flowcat function) about two or more {flow}charts
-#
-
-  edges <- labelassign <- labelshow <- nodenum <- c()
-  flows <- list(...)
-  for (i in 1:length(flows)) {
-    if (!is.null(flows[[i]])) {
-      nodenum <- c(nodenum,flows[[i]]$nodenum)
-      if (length(edges)==0) {
-        edges <- flows[[i]]$edges
-      } else {
-        edges <- paste0(edges,"\n",flows[[i]]$edges)
-      }
-      if (length(labelassign)==0) {
-        labelassign <- flows[[i]]$labelassign
-      } else {
-        labelassign <- paste0(labelassign,"\n",flows[[i]]$labelassign)
-      }
-    }
-  }
-  return(list(nodenum=nodenum,edges=edges,labelassign=labelassign,labelshow=labelshow))
-}
-
-
-
-splitlines <- function (x, width = 10, sp = "\n", at = c(" ", "-", "+", "_", "=", "/"), same = FALSE) {
-
-# NOTE: I removed forward slash from the default at argument,
-# because it caused a problem with HTML where / is important.
-# e.g. <BR/>
-
-  if (any(is.na(x))) stop("Missing value in vector of strings.")
-
-  n <- nchar(x)
-  nsp <- nchar(sp)
-  result <- rep("", length(x))
-  splits <- rep(0, length(x))
-  if (is.null(x) || (length(x)==0)) return(NULL)
-  for (i in 1:length(x)) {
-      count <- 0
-      start <- 1
-      for (j in 1:(n[i])) {
-        count <- count + 1
-        char <- substring(x[i], j, j)
-        if (char %in% sp) {
-          count <- 0
-        } else {
-          if (char %in% at) {
-            if (count > width) {
-              if (char == " ") {
-                end <- j - 1
-              }
-              else {
-                end <- j
-              }
-              result[i] <- paste0(result[i], substring(x[i],
-                start, end), sp)
-              start <- j + 1
-              count <- 0
-              splits[i] <- splits[i] + 1
-            }
-          }
-        }
-      }
-      if (start <= n[i])
-          result[i] <- paste0(result[i], substring(x[i], start,
-              n[i]))
-  }
-  if (same) {
-      maxsplits <- max(splits)
-      for (i in 1:length(x)) {
-          while (splits[i] < maxsplits) {
-              result[i] <- paste0(result[i], sp)
-              splits[i] <- splits[i] + 1
-          }
-      }
-  }
-  result
-}
-
-
-
-around <- function (x, digits = 2, tooLong = 10) {
-  if (is.character(x)) {
-    x
-  } else
-  if (is.integer(x) || is.factor(x)) {
-    as.character(x)
-  } else
-  if (is.data.frame(x)) {
-      for (i in 1:ncol(x)) {
-          x[[i]] <- around(x[[i]], digits = digits)
-      }
-      x
-  } else
-  if (!is.numeric(x)) {
-    if (all(is.na(x))) {
-      rep("NA",length(x))
-    } else {
-      x
-    }
-  } else {
-    if (digits == 0) {
-      result <- formatC(x, digits = digits, drop0trailing = TRUE,
-        format = "f", flag = "#")
-      result[nchar(result) > tooLong] <- formatC(x[nchar(result) >
-        tooLong], digits = digits, drop0trailing = TRUE,
-        format = "g", flag = "#")
-    }
-    else {
-      result <- formatC(x, digits = digits, drop0trailing = FALSE,
-        format = "f", flag = "#")
-      result[nchar(result) > tooLong] <- formatC(x[nchar(result) >
-        tooLong], digits = digits, drop0trailing = FALSE,
-        format = "g", flag = "#")
-    }
-    result[result == "-0"] <- "0"
-    result[result == "-0.0"] <- "0.0"
-    result[result == "-0.00"] <- "0.00"
-    result[result == "-0.000"] <- "0.000"
-    result
-  }
-}
-
-
-
-nodeMeanSD <- function(u,varname,value,args) {
-  if (is.null(args$digits)) args$digits <- 1   # default value
-
-  paste0("\n",args$var,": mean (SD)\n",
-    around(mean(u[[args$var]],na.rm=TRUE),args$digits),
-    " (",around(sd(u[[args$var]],na.rm=TRUE),args$digits),")",
-    " mv=",sum(is.na(u[[args$var]])))
-}
-
-
-
-convertToHTML <- function(x) {
-  # Convert various text elements to their HTML entities.
-  # Note that order matters here!
-
-  x <- gsub("&","&amp;",x)
-  x <- gsub("<=","&le;",x)
-  x <- gsub(">=","&ge;",x)
-  x <- gsub("<","&lt;",x)
-  x <- gsub(">","&gt;",x)
-
-  # Also convert character sequences for line breaks.
-
-  x <- gsub("\n\\*l","<BR ALIGN='LEFT'/>",x)
-
-  x <- gsub("\\\\n","<BR/>",x)
-  x <- gsub("\n","<BR/>",x)
-
-
-  # Markdown-style formatting
-
-  x <- gsub("\\*\\*(.+?)\\*\\*","<B>\\1</B>",x)
-  x <- gsub("\\*(.+?)\\*","<I>\\1</I>",x)
-
-  # In markdown, _underscores_ can be used to format in italics.
-  # But I have disabled this because it caused problems with
-  # variable_names_likeThis
-  # x <- gsub("_(.+?)_","<I>\\1</I>",x)
-
-  # Special character sequence for color!
-
-  x <- gsub("%%([^ ]+?) (.+?)%%","<FONT COLOR=\"\\1\">\\2</FONT>",x)
-
-  # Markdown-style formatting for superscript and subscript
-
-  x <- gsub("\\^(.+?)\\^","<FONT POINT-SIZE='10'><SUP>\\1</SUP></FONT>",x)
-  x <- gsub("~(.+?)~","<FONT POINT-SIZE='10'><SUB>\\1</SUB></FONT>",x)
-
-  x
-}
-
-
-
-tableWithoutSort <- function(x,exclude = NA) {
-  tab <- table(x,exclude=exclude)
-  u <- unique(x)
-  if (any(is.na(u))) {
-    u <- u[!is.na(u)]
-    ustr <- as.character(u)
-    count <- tab[ustr]
-    count <- c(count,tab[is.na(names(tab))])
-  } else {
-    ustr <- as.character(u)
-    #count <- tab[ustr]  
-    count <- tab[match(ustr,names(tab))]  
-  }
-  names(dimnames(count)) <- NULL
-  count
-}
-
-
-#' @importFrom stats median quantile sd
-
-summaryNodeFunction <- function (u, varname, value, args) {
-
-  justpct <- function(w,digits=2,vp=TRUE,empty="") {
-    if (vp) {
-      num <- sum(w==1,na.rm=TRUE)
-      den <- length(w) - sum(is.na(w))
-    } else {
-      num <- sum(w==1,na.rm=TRUE)
-      den <- length(w)
-    }
-    pctString <- paste0(around(100*num/den,digits),"%")
-    if (den==0) {
-      pctString <- empty
-    }
-    if (any(is.na(w)))
-      pctString <- paste0(pctString," mv=",sum(is.na(w)))
-    pctString
-  }
-  
-  nAndpct <- function(w,digits=2,vp=TRUE,empty="") {
-    if (vp) {
-      num <- sum(w==1,na.rm=TRUE)
-      den <- length(w) - sum(is.na(w))
-    } else {
-      num <- sum(w==1,na.rm=TRUE)
-      den <- length(w)
-    }
-    npctString <- paste0(num," (",
-      around(100*num/den,digits),"%)")
-    if (den==0) {
-      npctString <- empty
-    }
-    if (any(is.na(w)))
-      npctString <- paste0(npctString," mv=",sum(is.na(w)))
-    npctString
-  }
-
-  qntl <- function(x,...) {
-    if (any(is.na(x))) {
-      NA
-    } else {
-      stats::quantile(x,...)
-    }
-  }
-
-  sepN <- args$sepN
-  
-  if (is.null(args$digits))
-    args$digits <- 1
-  if (is.null(args$cdigits))
-    args$cdigits <- 2
-  if (is.null(args$na.rm))
-    args$na.rm <- TRUE
-
-  if (is.null(args$root)) {
-    args$root <- FALSE
-  }
-
-  if (is.null(args$leaf)) {
-    args$leaf <- FALSE
-  }
-
-  nargs <- length(args$var)
-  RESULT <- rep("",nargs)
-  for (i in 1:nargs) {
-  
-    var <- args$var[i]
-
-    y <- u[[var]]
-
-    show <- TRUE
-    if (!is.null(args$sf)) {
-      show <- args$sf[[i]](u)
-    }
-
-    if (show) {
-      format <- args$format[i]
-      digits <- args$digits
-      cdigits <- args$cdigits
-      na.rm <- args$na.rm
-
-      missingNum <- sum(is.na(y))
-      if (na.rm) {
-        x <- y[!is.na(y)]
-        if (is.null(x)) x <- NA
-      } else {
-        x <- y
-      }
-
-      result <- format
-
-      ShowNodeText <- TRUE
-
-      # check the %var=V% and %node=N% codes
-      if (length(grep("%var=([^%]+)%",result))>0) {
-        varspec <- sub("(.*)%var=([^%]+)%(.*)","\\2",result)
-        if (varspec==varname) {
-          if (length(grep("%node=([^%]+)%",result))>0) {
-            nodespec <- sub("(.*)%node=([^%]+)%(.*)","\\2",result)
-            if (!is.na(value) & (nodespec==value)) {
-              ShowNodeText <- TRUE
-            } else {
-              ShowNodeText <- FALSE
-            }            
-          } else {
-            ShowNodeText <- TRUE
-          }
-        } else {
-          ShowNodeText <- FALSE
-        } 
-      } else {
-        if (length(grep("%node=([^%]+)%",result))>0) {
-          nodespec <- sub("(.*)%node=([^%]+)%(.*)","\\2",result)
-          if (!is.na(value) & (nodespec==value)) {
-            ShowNodeText <- TRUE
-          } else {
-            ShowNodeText <- FALSE
-          }            
-        }
-      }
-      
-      y_event <- NULL
-      if (length(grep("%pct=([^%]+)%",result))>0) {
-        pct_arg <- sub(
-          "(.*)%pct=([^%]+)%(.*)","\\2",result)
-        y_event <- y==pct_arg
-      }
-      if (length(grep("%npct=([^%]+)%",result))>0) {
-        npct_arg <- sub(
-          "(.*)%npct=([^%]+)%(.*)","\\2",result)
-        y_event <- y==npct_arg
-      }      
-
-      if (!args$leaf) {
-        if (length(grep("%leafonly%",result))>0) {
-          ShowNodeText <- FALSE
-        }
-      }
-
-      if (args$root) {
-        if (length(grep("%noroot%",result))>0) {
-          ShowNodeText <- FALSE
-        }
-      }
-
-      TruncNodeText <- FALSE
-      if (length(grep("%trunc=([^%]+)%",result))>0) {
-        truncval <- as.numeric(sub("(.*)%trunc=([^%]+)%(.*)","\\2",result))
-        TruncNodeText <- TRUE
-      }
-
-      # Format %list% output
-      tabval <- tableWithoutSort(around(sort(y,na.last=TRUE),digits=cdigits),exclude=NULL)
-      countval <- paste0(" (n=",tabval,")")
-      countval[tabval==1] <- ""
-      listOutput <- paste0(paste0(names(tabval),countval),collapse=", ")
-      listLinesOutput <- paste0(paste0(names(tabval),countval),collapse=sepN)
-
-      if (ShowNodeText) {
-        if (length(x)==0 || !is.numeric(x)) {
-          minx <- maxx <- NA
-        } else {
-          minx <- min(x)
-          maxx <- max(x)
-        }
-
-        result <- gsub("%var=[^%]+%","",result)
-        result <- gsub("%node=[^%]+%","",result)
-        result <- gsub("%trunc=(.+)%","",result)
-        result <- gsub("%noroot%","",result)
-        result <- gsub("%leafonly%","",result)
-        result <- gsub("%v%",args$var[i],result)
-        result <- gsub("%list%",listOutput,result)
-        result <- gsub("%listlines%",listLinesOutput,result)
-        result <- gsub("%mv%",paste0(missingNum),result)
-        if (is.numeric(x) | is.logical(x)) {
-          # Note that y is used in the call to nAndpct
-          # so that missing values can be handled as desired
-          result <- gsub("%npct%",nAndpct(y,digits=digits),result)
-          result <- gsub("%pct%",justpct(y,digits=digits),result)
-          result <- gsub("%mean%", around(mean(x), digits = cdigits),
-              result)
-          result <- gsub("%median%", around(stats::median(x), digits = cdigits),
-              result)
-          result <- gsub("%SD%", around(stats::sd(x), digits = cdigits), result)
-          result <- gsub("%min%", around(minx, digits = cdigits), result)
-          result <- gsub("%max%", around(maxx, digits = cdigits), result)
-          result <- gsub("%IQR%",
-            paste0(
-              around(qntl(x,0.25), digits = cdigits),", ",
-              around(qntl(x,0.75), digits = cdigits)),
-            result)
-          repeat {
-              if (length(grep("%(p)([0-9]+)%", result)) == 0)
-                  break
-              quant <- sub("(.*)%(p)([0-9]+)%(.*)", "\\3", result)
-              if (quant != "") {
-                  qq <- around(qntl(x, as.numeric(quant)/100),
-                      digits = digits)
-                  result <- sub(paste0("%p", quant,"%"), qq, result)
-              }
-          }
-        }
-      } else {
-        result <- ""
-      }
-      if (TruncNodeText) {
-        if (nchar(result)>truncval) {
-          RESULT[i] <- paste0(substr(result,1,truncval),"...")
-        } else {
-          RESULT[i] <- result
-        }
-      } else {
-        RESULT[i] <- result
-      }
-    }
-  }
-  RESULT
-}
-
-
-
-
-#' @title grVizToPNG
-#'
-#' @author Nick Barrowman
-#'
-#' @description
-#'  \code{grVizToPNG} Export a grViz object into a PNG file.
-#'
-#' @param g      an object produced by the grViz function from the DiagrammmeR package
-#' @param width  the width in pixels of the bitmap
-#' @param height the height in pixels of the bitmap
-#' @param folder path to folder where the PNG file should stored
-#'
-#' @details
-#'   First the grViz object is exported to an SVG file (using \code{DiagrammeRsvg::export_svg}).
-#'   Then the SVG file is converted to a bitmap (using \code{rsvg::rsvg}).
-#'   Then the bitmap is exported as a PNG file (using \code{png::writePNG}).
-#'   Note that the SVG file and the PNG file will be named using the name of the \code{g} parameter
-#'
-#' @note
-#'   In addition to the DiagrammmeR package, the following packages are used: \code{DiagrammeRsvg}, \code{rsvg}
-#'
-#' @return
-#'   Returns the full path of the PNG file.
-#'
-#' @export
-#'
-
-grVizToPNG <- function (g, width=NULL, height=NULL, folder = ".") {
-  filename <- paste0(sapply(as.list(substitute({g})[-1]), deparse),".png")
-  if (is.null(g)) {
-    g <- DiagrammeR::grViz("digraph empty{ Node1[label='Empty'] }")
-  }
-  # Convert any double backslashes to forward slashes.
-  folder <- gsub("\\\\","/",folder)
-  fullpath <- file.path(folder,filename)
-  message <- utils::capture.output(svg <- DiagrammeRsvg::export_svg(g))
-  result <- rsvg::rsvg_png(charToRaw(svg),fullpath, width = width, height=height)
-  invisible(fullpath)
-}
-
-
-#' @title crosstabToCases
-#'
-#' @author Nick Barrowman, based on the \code{countsToCases} function at \url{http://www.cookbook-r.com/Manipulating_data/Converting_between_data_frames_and_contingency_tables/#countstocases-function}
-#'
-#' @description
-#' Convert a crosstabulation into a data frame of cases.
-#'
-#' @param x  a matrix or table of frequencies representing a crosstabulation.
- 
-#' @return
-#'   Returns a data frame of cases.
-#'
-#' @examples
-#' # The Titanic data set is in the datasets package.
-#' # Convert it from a 4 x 2 x 2 x 2 crosstabulation 
-#' # to a 4-column data frame of 2201 individuals
-#' titanic <- crosstabToCases(Titanic)
-#'
-#' @export
-#'
-
-crosstabToCases <- function(x) {
-
-  if (!is.table(x)) {
-    if (is.matrix(x)) {
-      x <- table(x)
-    } else {
-      stop("not a matrix")
-    }
-  }
-  
-  u <- data.frame(x)
-
-  # Get the row indices to pull from x
-  idx <- rep.int(seq_len(nrow(u)), u$Freq)
-
-  # Drop count column
-  u$Freq <- NULL
-
-  # Get the rows from x
-  rows <- u[idx, ]
-  rownames(rows) <- NULL
-  rows
-}
