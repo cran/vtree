@@ -3,7 +3,7 @@ var,
 check.is.na=FALSE,
 labelvar=NULL,
 varminwidth=NULL,varminheight=NULL,varlabelloc=NULL,
-shownodelabels=TRUE,sameline=FALSE,
+showvarinnode=FALSE,shownodelabels=TRUE,sameline=FALSE,
 prune=NULL,
 prunelone=NULL,prunesmaller=NULL,
 keep=NULL,
@@ -51,54 +51,43 @@ vp=TRUE,rounded=FALSE,showroot=TRUE) {
   categoryCounts <- c(length(z),categoryCounts)
   names(categoryCounts)[1] <- title
 
-  # Use npct to calculate percentages, but don't use "valid percentages"
-  # since the denominator should always be the number in the parent node.
-  # npctString <- npct(z,includemiss=TRUE,vp=FALSE,pcs="%")
-  # If there are no missing values, don't include the NA category
-  # if (sum(is.na(z))==0) npctString <- npct(z,pcs="%")
-
-    if (vp & any(names(categoryCounts)=="NA")) { 
+  if (vp & any(names(categoryCounts)=="NA")) { 
     cc <- categoryCounts[-1]
-    cc <- cc[names(cc)!="NA"]
+    #cc <- cc[names(cc)!="NA"]
     if (length(cc)>0) {
       npctString <- rep("",length(cc))
       nString <- cc
       if (showcount) {
         npctString <- cc
-        if (showpct) npctString <- paste0(npctString," ")
+        #if (showpct) npctString <- paste0(npctString," ")
       }
-      pctString <- around(100*cc/sampleSize,digits)   # used to be sum(cc) rather than sampleSize
+      pctString <- ifelse(names(cc)=="NA","",around(100*cc/sampleSize,digits))
       if (showpct) {
-        npctString <- paste0(npctString,"(",pctString,"%)")
+        npctString <- ifelse(names(cc)=="NA",npctString,paste0(npctString," (",pctString,"%)"))
       }
     } else {
       npctString <- NULL
       nString <- NULL
       pctString <- NULL
     }
-    nString <- c(nString,categoryCounts["NA"])
-    if (showcount) {
-      npctString <- c(npctString,categoryCounts["NA"])
-    } else {
-      npctString <- c(npctString,"")
-    }
   } else {
     npctString <- rep("",length(categoryCounts[-1]))
     nString <- categoryCounts[-1]
     if (showcount) {
       npctString <- categoryCounts[-1]
-      if (showpct) npctString <- paste0(npctString," ")
+      #if (showpct) npctString <- paste0(npctString," ")
     }
     pctString <- around(100*categoryCounts[-1]/length(z),digits)
     if (showpct) {
-      npctString <- paste0(npctString,"(",pctString,"%)")
+      npctString <- paste0(npctString," (",pctString,"%)")
     }
   }
+  
+  #browser()
   
   npctString <- c(length(z),npctString)
   nString <- c(length(z),nString)
   pctString <- c("",pctString)
-  #names(npctString)[1] <- title
   
   if (!showempty) {
     s <- categoryCounts>0
@@ -193,7 +182,7 @@ vp=TRUE,rounded=FALSE,showroot=TRUE) {
   }
 
   if (length(ttext)>0) {
-    for (j in 1:length(ttext)) {
+    for (j in seq_len(length(ttext))) {
       if (length(ttext[[j]])==2 && any(names(ttext[[j]])==var)) {
         TTEXTposition <- CAT[-1] == ttext[[j]][names(ttext[[j]])==var]
         extraText[-1][TTEXTposition] <- ttext[[j]]["text"]
@@ -202,7 +191,7 @@ vp=TRUE,rounded=FALSE,showroot=TRUE) {
   }
 
   if (length(tlabelnode)>0) {
-    for (j in 1:length(tlabelnode)) {
+    for (j in seq_len(length(tlabelnode))) {
       if (length(tlabelnode[[j]])==2 && any(names(tlabelnode[[j]])==var)) {
         tlabelnode_position <- CAT[-1] == tlabelnode[[j]][names(tlabelnode[[j]])==var]
         CAT[-1][tlabelnode_position] <- tlabelnode[[j]]["label"]
@@ -232,15 +221,6 @@ vp=TRUE,rounded=FALSE,showroot=TRUE) {
     }
   }
 
-  # # Relabel the nodes if labelvar has been specified
-  # if (!showvarnames) {
-  #   if (!is.null(labelvar)) {
-  #     if (!is.na(labelvar)) {
-  #       displayCAT[-1] <- paste0(labelvar,sepN,displayCAT[-1])
-  #     }
-  #   }
-  # }
-
   # Write DOT code for the edges
   if (showroot) {
     edgeVector <- paste0(nodenames[1],"->",nodenames[-1])
@@ -255,23 +235,30 @@ vp=TRUE,rounded=FALSE,showroot=TRUE) {
     styleString <- ' style=filled'
   }
 
-  #displayCAT <- CAT
-  
   # Glue a space or a line break onto the non-empty elements of CAT
   if (sameline) {
-    for (i in 1:length(displayCAT)) {
+    for (i in seq_len(length(displayCAT))) {
       if (showcount || showpct || extraText[i]!="") {
         if (displayCAT[i]!="") displayCAT[i] <- paste0(displayCAT[i],", ")
       }
     }
   } else {
-    for (i in 1:length(displayCAT)) {
+    for (i in seq_len(length(displayCAT))) {
       if (displayCAT[i]!="") displayCAT[i] <- paste0(displayCAT[i],sepN)
     }
   }
 
   if (!shownodelabels) {
     for (i in 2:length(displayCAT)) displayCAT[i] <- ""
+  }
+  
+  # Relabel the nodes if showvarinnode is TRUE
+  if (showvarinnode) {
+    if (is.null(labelvar)) {
+      displayCAT[-1] <- paste0(var,": ",displayCAT[-1])
+    } else {
+      displayCAT[-1] <- paste0(labelvar,sepN,displayCAT[-1])
+    }
   }
   
   if (!HTMLtext) {
@@ -302,6 +289,8 @@ vp=TRUE,rounded=FALSE,showroot=TRUE) {
       nodenames[-1],'[label=<',displayCAT[-1],npctString[-1],extraText[-1],'> color=',color,styleString,
       ' fillcolor=<',FILLCOLOR,'>',VARLABELLOC,' ',VARMINWIDTH,' ',VARMINHEIGHT,']'),collapse='\n')
   }
+  
+  #browser()
 
   return(list(
     value=CAT[-1],

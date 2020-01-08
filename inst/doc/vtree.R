@@ -18,6 +18,11 @@ cat(vtree(FakeData,"Severity Sex",showlegend=FALSE,horiz=FALSE,
 ## ---- eval=FALSE------------------------------------------------------------------------
 #  vtree(df,"v1 v2")
 
+## ---- eval=FALSE------------------------------------------------------------------------
+#  NOTES:
+#  1. Discrete variables are operationally defined here as variables with at most 4 distinct values.
+#  2. Variables are included until the maximum number of nodes exceeds the maxNodes parameter value.
+
 ## ----eval=FALSE, results="asis"---------------------------------------------------------
 #  vtree(FakeData,"Severity")
 
@@ -161,11 +166,11 @@ vtree(FakeData,"Severity Age Pre Post",check.is.na=TRUE,summary="id %list%%trunc
 dotscript <- vtree(FakeData,"Severity",getscript=TRUE)
 cat(dotscript)
 
-## ---- eval=FALSE------------------------------------------------------------------------
-#  `r vtree(FakeData,"Sex Severity")`
+## ---- eval=FALSE,echo=TRUE--------------------------------------------------------------
+#  <unknown>:1919791: Invalid asm.js: Function definition doesn't match use
 
 ## ---- eval=FALSE------------------------------------------------------------------------
-#  `r vtree(FakeData,"Severity Sex",pngknit=FALSE)`
+#  `r vtree(FakeData,"Sex Severity")`
 
 ## ---------------------------------------------------------------------------------------
 build.data.frame(
