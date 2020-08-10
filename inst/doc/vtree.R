@@ -1,7 +1,14 @@
 ## ---- echo=FALSE------------------------------------------------------------------------
 suppressMessages(library(ggplot2))
 library(vtree)
+#source("../source.R")
 options(width=90)
+options(rmarkdown.html_vignette.check_title = FALSE)
+
+## ---- echo=FALSE------------------------------------------------------------------------
+spaces <- function (n) {
+  paste(rep("&nbsp;", n), collapse = "")
+}
 
 ## ---- echo=FALSE------------------------------------------------------------------------
 df <- build.data.frame(
@@ -11,43 +18,39 @@ df <- build.data.frame(
   list("Africa","Under 30 million","landlocked",14),
   list("Africa","Under 30 million","not landlocked",26))
 
-## ---- echo=FALSE, results="asis"--------------------------------------------------------
-cat(vtree(FakeData,"Severity Sex",showlegend=FALSE,horiz=FALSE,
-  width=600,height=200,pxwidth=1000,imageheight="2.2in"))
-
 ## ---- eval=FALSE------------------------------------------------------------------------
 #  vtree(df,"v1 v2")
 
 ## ---- eval=FALSE------------------------------------------------------------------------
-#  NOTES:
-#  1. Discrete variables are operationally defined here as variables with at most 4 distinct values.
-#  2. Variables are included until the maximum number of nodes exceeds the maxNodes parameter value.
+#  simple_tree <- vtree(df,"v1 v2")
+
+## ---- eval=FALSE------------------------------------------------------------------------
+#  simple_tree
+
+## ---- eval=FALSE------------------------------------------------------------------------
+#  vtree(df)
 
 ## ----eval=FALSE, results="asis"---------------------------------------------------------
 #  vtree(FakeData,"Severity")
 
-## ---- eval=FALSE------------------------------------------------------------------------
-#  vtree(FakeData,"Severity Sex",horiz=FALSE,plain=TRUE)
+## ----eval=FALSE-------------------------------------------------------------------------
+#  library(dplyr)
+#  FakeData %>% rename("HowBad"=Severity) %>% vtree("HowBad")
 
 ## ----eval=FALSE-------------------------------------------------------------------------
 #  vtree(FakeData,"Severity Sex",showlegend=TRUE,shownodelabels=FALSE)
 
 ## ----eval=FALSE-------------------------------------------------------------------------
-#  vtree(FakeData,"Severity Sex Viral",sameline=TRUE)
+#  vtree(FakeData,"Severity Sex")
 
 ## ----eval=FALSE-------------------------------------------------------------------------
 #  vtree(FakeData,"Severity Sex",prune=list(Severity=c("Mild","Moderate")))
 
 ## ----eval=FALSE-------------------------------------------------------------------------
-#  vtree(FakeData,"Severity",keep=list(Severity="Moderate"))
+#  vtree(FakeData,"Severity Sex",keep=list(Severity="Moderate"))
 
 ## ----eval=FALSE-------------------------------------------------------------------------
-#  vtree(FakeData,"Severity")
-#  vtree(FakeData,"Severity",vp=FALSE)
-
-## ----eval=FALSE-------------------------------------------------------------------------
-#  vtree(FakeData,"Severity",keep=list(Severity="Moderate"))
-#  vtree(FakeData,"Severity",vp=FALSE,keep=list(Severity="Moderate"))
+#  vtree(FakeData,"Severity Sex",keep=list(Severity="Moderate"),vp=FALSE)
 
 ## ----eval=FALSE-------------------------------------------------------------------------
 #  vtree(FakeData,"Severity Sex",prunebelow=list(Severity=c("Mild","Moderate")))
@@ -85,38 +88,49 @@ cat(vtree(FakeData,"Severity Sex",showlegend=FALSE,horiz=FALSE,
 #      c(Group="B",text="\nNorway")))
 
 ## ----eval=FALSE-------------------------------------------------------------------------
-#  vtree(FakeData,"Severity",summary="Score \nmean score: %mean%",sameline=TRUE,horiz=FALSE)
+#  vtree(FakeData,"is.na:Score")
 
 ## ----eval=FALSE-------------------------------------------------------------------------
-#  vtree(FakeData,"Severity",summary="Score \nmean score: %mean%",cdigits=0,
-#    sameline=TRUE,horiz=FALSE)
+#  vtree(FakeData,summary="Score")
 
 ## ----eval=FALSE-------------------------------------------------------------------------
-#  vtree(FakeData,"Severity",horiz=FALSE,showvarnames=FALSE,splitwidth=Inf,sameline=TRUE,
-#    summary=c("Score \nScore: mean (SD) %mean% (%SD%)","Pre \nPre: range %min%, %max%"))
+#  vtree(FakeData,"Severity",summary="Score",horiz=FALSE)
+
+## ---------------------------------------------------------------------------------------
+vSeverity <- vtree(FakeData,"Severity",summary="Score",horiz=FALSE)
+info <- attributes(vSeverity)$info
+cat(info$Severity$Mild$.text)
 
 ## ----eval=FALSE-------------------------------------------------------------------------
-#  vtree(FakeData,"Severity",summary="Category=single \n%pct% single",sameline=TRUE,horiz=FALSE)
+#  vtree(FakeData,summary="Category")
+
+## ----eval=FALSE-------------------------------------------------------------------------
+#  vtree(FakeData,summary="Event")
+
+## ----eval=FALSE-------------------------------------------------------------------------
+#  vtree(FakeData,"Severity",summary="Category=single",horiz=FALSE)
+
+## ----eval=FALSE-------------------------------------------------------------------------
+#  vtree(FakeData,"Severity",summary="Ind*",sameline=TRUE,horiz=FALSE,just="l")
+
+## ---- eval=FALSE------------------------------------------------------------------------
+#  vtree(FakeData,"Severity Category",summary="Score<10 %var=Category%%node=triple%",
+#    sameline=TRUE)
+
+## ----eval=FALSE-------------------------------------------------------------------------
+#  vtree(FakeData,"Severity",summary="Score \nmean score\n%mean%",sameline=TRUE,horiz=FALSE)
 
 ## ----eval=FALSE-------------------------------------------------------------------------
 #  vtree(FakeData,"Severity Category",
 #    summary="(Post-Pre)/Pre \nmean = %mean%",sameline=TRUE,horiz=FALSE,cdigits=1)
 
+## ----eval=FALSE-------------------------------------------------------------------------
+#  vtree(FakeData,"Severity",horiz=FALSE,showvarnames=FALSE,splitwidth=Inf,sameline=TRUE,
+#    summary=c("Score \nScore: mean (SD) %meanx% (%SD%)","Pre \nPre: range %range%"))
+
 ## ---- eval=FALSE------------------------------------------------------------------------
 #  vtree(FakeData,"Severity Sex")
 #  vtree(FakeData,"Severity Sex",pattern=TRUE)
-
-## ---- echo=FALSE,results="asis"---------------------------------------------------------
-cat(vtree(FakeData,"Severity Sex",
-  width=650,height=650,pxwidth=500,imageheight="4in"))
-#filepath <- grVizToPNG(v14,width=800))
-
-cat("&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;")
-
-cat(vtree(FakeData,"Severity Sex",pattern=TRUE,
-  width=650,height=650,pxwidth=600,imageheight="4in"))
-#filepath2 <- grVizToPNG(v15,width=800)
-#![](`r filepath`){ height=4in } &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ![](`r filepath2`){ height=4in }
 
 ## ---------------------------------------------------------------------------------------
 vtree(FakeData,"Severity Sex",ptable=TRUE)
@@ -150,21 +164,64 @@ vtree(FakeData,"Severity Sex",summary=c("Score %mean%","Pre %mean%"),ptable=TRUE
 vtree(FakeData,"Severity Age Pre Post",check.is.na=TRUE,summary="id %list%%trunc=15%",
   ptable=TRUE)
 
-## ----eval=FALSE-------------------------------------------------------------------------
-#  vtree(MyREDCapData,"IceCream___1 IceCream___2 IceCream___3")
-
-## ----eval=FALSE-------------------------------------------------------------------------
-#  vtree(MyREDCapData,"stem:IceCream")
-
-## ----eval=FALSE-------------------------------------------------------------------------
-#  vtree(MyREDCapData,"stem:IceCream",pattern=TRUE,showroot=FALSE)
+## ---- eval=FALSE------------------------------------------------------------------------
+#  vtree(FakeData,"Sex Severity",palette=c(3,4))
 
 ## ---- eval=FALSE------------------------------------------------------------------------
-#  vtree(MyREDCapData,"rc:IceCream___1 rc:IceCream___3",pattern=TRUE,showroot=FALSE)
+#  vtree(FakeData,"Sex Group Severity",revgradient=c(Sex=TRUE,Severity=TRUE))
+
+## ---------------------------------------------------------------------------------------
+dessert <- build.data.frame(
+  c(   "group","IceCream___1","IceCream___2","IceCream___3"),
+  list("A",     1,             0,             0,              7),
+  list("A",     1,             0,             1,              2),
+  list("A",     0,             0,             0,              1),
+  list("B",     1,             0,             1,              1),
+  list("B",     1,             0,             0,              2), 
+  list("B",     0,             1,             1,              1),
+  list("B",     0,             0,             0,              1))
+attr(dessert$IceCream___1,"label") <- "Ice cream (choice=Chocolate)"
+attr(dessert$IceCream___2,"label") <- "Ice cream (choice=Vanilla)"
+attr(dessert$IceCream___3,"label") <- "Ice cream (choice=Strawberry)"
+
+## ----eval=FALSE-------------------------------------------------------------------------
+#  vtree(dessert,"r:IceCream___1")
+
+## ----eval=FALSE-------------------------------------------------------------------------
+#  vtree(dessert,"r:IceCream@")
+
+## ----eval=FALSE-------------------------------------------------------------------------
+#  vtree(dessert,"rany:IceCream@")
+
+## ----eval=FALSE-------------------------------------------------------------------------
+#  vtree(dessert,"ri:IceCream@")
+
+## ----eval=FALSE-------------------------------------------------------------------------
+#  vtree(dessert,"IceCream___1 IceCream___2 IceCream___3",pattern=TRUE)
+
+## ----eval=FALSE-------------------------------------------------------------------------
+#  vtree(dessert,"stem:IceCream",pattern=TRUE)
+
+## ---- eval=FALSE------------------------------------------------------------------------
+#  vtree(dessert,summary="stem:IceCream",splitwidth=Inf,just="l")
+
+## ---- eval=FALSE------------------------------------------------------------------------
+#  vtree(dessert,"rc:IceCream___1 rc:IceCream___3",pattern=TRUE)
 
 ## ---- comment=""------------------------------------------------------------------------
 dotscript <- vtree(FakeData,"Severity",getscript=TRUE)
 cat(dotscript)
+
+## ----echo=TRUE,message=FALSE,eval=FALSE-------------------------------------------------
+#  v <- vtree(FakeData,"Group Viral")
+#  v
+
+## ----echo=FALSE,message=FALSE-----------------------------------------------------------
+v <- vtree(FakeData,"Group Viral",pxwidth=300,imageheight="2.5in")
+v
+
+## ----echo=TRUE,message=FALSE------------------------------------------------------------
+attributes(v)$info
 
 ## ---- eval=FALSE,echo=TRUE--------------------------------------------------------------
 #  <unknown>:1919791: Invalid asm.js: Function definition doesn't match use
@@ -179,14 +236,14 @@ build.data.frame(
   list("cat","tabby","small",2))
 
 ## ---- eval=FALSE------------------------------------------------------------------------
-#  vtree(build.data.frame(
+#  build.data.frame(
 #    c("pet","breed","size"),
 #    list("dog","golden retriever","large",5),
 #    list("cat","tabby","small",2),
 #    list("dog","Dalmation","various",101),
 #    list("cat","Abyssinian","small",5),
 #    list("cat","Abyssinian","large",22),
-#    list("cat","tabby","large",86)))
+#    list("cat","tabby","large",86))
 
 ## ---------------------------------------------------------------------------------------
 FakeRCT
@@ -247,7 +304,8 @@ FakeRCT
 #  vtree(ucb,"Dept Gender",summary="Admit=Admitted \n%pct% admitted",sameline=TRUE)
 
 ## ---- eval=FALSE------------------------------------------------------------------------
-#  vtree(ChickWeight,"Diet Time",keep=list(Time=c("0","4")),summary="weight \nmean weight %mean%g")
+#  vtree(ChickWeight,"Diet Time",
+#    keep=list(Time=c("0","4")),summary="weight \nmean weight %mean%g")
 
 ## ---- eval=FALSE------------------------------------------------------------------------
 #  vtree(ChickWeight,"Diet Time",keep=list(Time=c("0","4")),

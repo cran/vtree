@@ -1,8 +1,67 @@
+# vtree 5.0.0
+
+## Changes
+
+* Variable labels are shown differently: no longer boldface, and also larger (24 point instead of 18 point). (The metrics for boldface font seemed to be not quite right, which sometimes resulted in truncated text.)
+
+* Revamped legends.
+
+* New `sortfill` parameter. Specifying `sortfill=TRUE` fills nodes with gradient colors
+in sorted order according to the node count.
+
+* `vtree` return value now has an `info` attribute,
+which is a nested list that gives the count for each node
+
+* When no summary codes for statistics are specified,
+a default summary is shown, depending on the type of variable.
+
+* New variable prefix `i:` for "intersections" of variables
+
+* New variable prefixes `any:` and `all:`
+
+* New summary codes `%range%`, `%freq%`, and `%freqpct%`.
+
+* New variant summary codes (ending in x to disregard missing values,
+ending in _ to put on separate lines).
+
+* New REDCap variable prefix `r:` and suffix `@`
+
+* When `vars` is not specified, only the root node is shown. (Previously vtree would try to use as many variables as possible.)
+
+* Added more informative error messages.
+
+* Added additional color palettes.
+
+* The old `stem:` and `rc:` variable specification and summary prefixes
+for REDCap checkbox variables are now deprecated.
+
+* The `lsplitwidth` parameter is now deprecated; `vsplitwidth` (for splitting variable names) should be used instead.
+
+* `splitwidth` now applies to legend nodes as well as ordinary nodes.
+
+## Bug fixes
+
+* Fixed issue with Shiny where vtree not visible immediately.
+
+* Fixed problem with summaries when three or fewer observations are present.
+
+* Fixed bug with HTML conversion of labels in legends.
+
+* Fixed problem with DOT script when there is no root node.
+
+* Fixed bug with variable names showing up white when `fillcolor="white"`.
+
+* Fixed bug with pattern tables when `prunesmaller` was specified.
+
+
+
 # vtree 4.0.0
 
 ## Changes
 
-* Added a new parameter, `arrowhead`, to specify the type of arrowhead
+* New parameter, `just`, to specify text justification.
+
+* New parameter, `arrowhead`, to specify the type of arrowhead
 (or `none`).
 
 * Added summary variable specification `!=`

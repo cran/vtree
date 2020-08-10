@@ -1,4 +1,4 @@
-flowcat <- function(z,root=TRUE,title="",parent=1,last=1,labels=NULL,tlabelnode=NULL,HTMLtext=FALSE,
+flowcat <- function(z,root=TRUE,novars=FALSE,title="",parent=1,last=1,labels=NULL,tlabelnode=NULL,HTMLtext=FALSE,
 var,
 check.is.na=FALSE,
 labelvar=NULL,
@@ -13,7 +13,7 @@ showcount=TRUE,
 showvarnames=FALSE,
 pruneNA=FALSE,
 splitwidth=Inf,topcolor="black",color="blue",topfillcolor="olivedrab3",fillcolor="olivedrab2",
-vp=TRUE,rounded=FALSE,showroot=TRUE) {
+vp=TRUE,rounded=FALSE,just="c",showroot=TRUE,verbose=FALSE,sortfill=FALSE) {
 #
 # Write DOT code for a single-level {flow}chart of {cat}egories using the
 # DiagrammeR framework.
@@ -21,7 +21,7 @@ vp=TRUE,rounded=FALSE,showroot=TRUE) {
 # https://en.wikipedia.org/wiki/DOT_(graph_description_language)
 #
 
-  if (HTMLtext) {
+    if (HTMLtext) {
     sepN <- "<BR/>"
   } else {
     sepN <- "\n"
@@ -50,6 +50,10 @@ vp=TRUE,rounded=FALSE,showroot=TRUE) {
   # Pre-pend the parent node
   categoryCounts <- c(length(z),categoryCounts)
   names(categoryCounts)[1] <- title
+
+  if (novars) {
+    showcount <- TRUE
+  }
 
   if (vp & any(names(categoryCounts)=="NA")) { 
     cc <- categoryCounts[-1]
@@ -83,8 +87,6 @@ vp=TRUE,rounded=FALSE,showroot=TRUE) {
     }
   }
   
-  #browser()
-  
   npctString <- c(length(z),npctString)
   nString <- c(length(z),nString)
   pctString <- c("",pctString)
@@ -111,6 +113,8 @@ vp=TRUE,rounded=FALSE,showroot=TRUE) {
       }  
       categoryCounts <- c(categoryCounts[1],categoryCounts[-1][!matching])
       npctString <- c(npctString[1],npctString[-1][!matching])
+      pctString <- c(pctString[1],pctString[-1][!matching])
+      nString <- c(nString[1],nString[-1][!matching])
     }
   }
 
@@ -135,8 +139,11 @@ vp=TRUE,rounded=FALSE,showroot=TRUE) {
         matching <- match(newkeep,names(categoryCounts)[-1])
         matching <- matching[!is.na(matching)]        
       }
+      #browser()
       categoryCounts <- c(categoryCounts[1],categoryCounts[-1][matching])
       npctString <- c(npctString[1],npctString[-1][matching])
+      pctString <- c(pctString[1],pctString[-1][matching])
+      nString <- c(nString[1],nString[-1][matching])
     }
   }
 
@@ -153,6 +160,7 @@ vp=TRUE,rounded=FALSE,showroot=TRUE) {
       }
     }
   }
+  
 
   # Number of new nodes to add to the tree
   n <- length(categoryCounts)-1              # exclude the parent node
@@ -167,6 +175,13 @@ vp=TRUE,rounded=FALSE,showroot=TRUE) {
 
   CAT <- names(categoryCounts)
   FILLCOLOR <- fillcolor[match(CAT[-1],names(fillcolor))]
+  
+  if (sortfill) {
+    o <- order(categoryCounts[-1][CAT[-1]!="NA"])
+    toChange <- (1:length(CAT[-1]))[CAT[-1]!="NA"]
+    names(FILLCOLOR)[toChange] <- names(FILLCOLOR)[toChange][o]
+    FILLCOLOR <- FILLCOLOR[CAT[-1]]
+  }
 
   extraText <- rep("",length(CAT))
 
@@ -180,7 +195,7 @@ vp=TRUE,rounded=FALSE,showroot=TRUE) {
       }
     }
   }
-
+  
   if (length(ttext)>0) {
     for (j in seq_len(length(ttext))) {
       if (length(ttext[[j]])==2 && any(names(ttext[[j]])==var)) {
@@ -198,7 +213,7 @@ vp=TRUE,rounded=FALSE,showroot=TRUE) {
       }
     }
   }
-  
+    
   displayCAT <- CAT
   
   if (HTMLtext) {
@@ -222,7 +237,7 @@ vp=TRUE,rounded=FALSE,showroot=TRUE) {
   }
 
   # Write DOT code for the edges
-  if (showroot) {
+  if (showroot & !novars) {
     edgeVector <- paste0(nodenames[1],"->",nodenames[-1])
     edges <- paste(edgeVector,collapse=" ")
   } else {
@@ -261,9 +276,11 @@ vp=TRUE,rounded=FALSE,showroot=TRUE) {
     }
   }
   
+  extra_text <- extraText
+
   if (!HTMLtext) {
-    displayCAT <- convertToHTML(displayCAT)
-    extraText <- convertToHTML(extraText)
+    displayCAT <- convertToHTML(displayCAT,just=just)
+    extraText <- convertToHTML(extraText,just=just)
   }
   
   # Write DOT code for assigning labels (using the DiagrammeR framework)
@@ -276,28 +293,31 @@ vp=TRUE,rounded=FALSE,showroot=TRUE) {
   labelassign <- c()
   if (root) {
     if (showroot) {
-      if (title!="") displayCAT[1] <- paste0(displayCAT[1],"<BR/>")
+      #if (title!="") displayCAT[1] <- paste0(displayCAT[1],"<BR/>")
+      if (title!="") displayCAT[1] <- displayCAT[1]
       labelassign <- paste(paste0(
         nodenames[1],'[label=<',displayCAT[1],npctString[1],extraText[1],'> color=',topcolor,styleString,
         ' fillcolor=<',topfillcolor,'>]'),collapse='\n')
     }
-    labelassign <- paste0(labelassign,'\n',paste(paste0(
-      nodenames[-1],'[label=<',displayCAT[-1],npctString[-1],extraText[-1],'> color=',color,styleString,
-      ' fillcolor=<',FILLCOLOR,'>',VARLABELLOC,' ',VARMINWIDTH,' ',VARMINHEIGHT,']')),collapse='\n')
+    if (!novars) {
+      labelassign <- paste0(labelassign,'\n',paste(paste0(
+        nodenames[-1],'[label=<',displayCAT[-1],npctString[-1],extraText[-1],'> color=',color,styleString,
+        ' fillcolor=<',FILLCOLOR,'>',VARLABELLOC,' ',VARMINWIDTH,' ',VARMINHEIGHT,']')),collapse='\n')
+    }
   } else {
     labelassign <- paste(paste0(
       nodenames[-1],'[label=<',displayCAT[-1],npctString[-1],extraText[-1],'> color=',color,styleString,
       ' fillcolor=<',FILLCOLOR,'>',VARLABELLOC,' ',VARMINWIDTH,' ',VARMINHEIGHT,']'),collapse='\n')
   }
   
-  #browser()
-
+  
   return(list(
+    root=root,
     value=CAT[-1],
     n=as.numeric(nString[-1]),
     pct=as.numeric(pctString[-1]),
     npctString=npctString[-1],
-    extraText=extraText[-1],
+    extraText=extra_text[-1],
     levels=names(categoryCounts)[-1],
     nodenum=nodenum[-1],
     edges=edges,

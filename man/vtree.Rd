@@ -7,6 +7,7 @@
 vtree(
   z,
   vars,
+  auto = FALSE,
   splitspaces = TRUE,
   prune = list(),
   prunebelow = list(),
@@ -28,6 +29,7 @@ vtree(
   palette = NULL,
   gradient = TRUE,
   revgradient = FALSE,
+  sortfill = FALSE,
   singlecolor = 2,
   colorvarlabels = TRUE,
   title = "",
@@ -50,11 +52,14 @@ vtree(
   showlpct = TRUE,
   showcount = TRUE,
   showlegend = FALSE,
-  varnamepointsize = 18,
+  varnamepointsize = 24,
+  varnamebold = FALSE,
+  legendpointsize = 14,
   HTMLtext = FALSE,
   digits = 0,
   cdigits = 1,
   splitwidth = 20,
+  vsplitwidth = 8,
   lsplitwidth = 15,
   getscript = FALSE,
   nodesep = 0.5,
@@ -82,15 +87,20 @@ vtree(
   arrowhead = "normal",
   pxwidth,
   pxheight,
-  imagewidth,
-  imageheight,
+  imagewidth = "",
+  imageheight = "",
   folder,
   pngknit = TRUE,
   as.if.knit = FALSE,
   maxNodes = 1000,
+  unchecked = c("0", "FALSE", "No", "no"),
+  checked = c("1", "TRUE", "Yes", "yes"),
+  just = "c",
+  verbose = FALSE,
   parent = 1,
   last = 1,
-  root = TRUE
+  root = TRUE,
+  subset = 1:nrow(z)
 )
 }
 \arguments{
@@ -99,6 +109,8 @@ vtree(
 \item{vars}{Required (unless \code{z} is a vector):
 Either a character string of whitespace-separated variable names
 or a vector of variable names.}
+
+\item{auto}{Automatically choose variables? (\code{vars} should not be specified)}
 
 \item{splitspaces}{When \code{vars} is a character string,
 split it by spaces to get variable names?
@@ -167,7 +179,7 @@ with the fill colors in the rest of the tree.}
 
 \item{rootfillcolor}{Fill-color for the root node.}
 
-\item{palette}{A vector of palette numbers (which can range between 1 and 9).
+\item{palette}{A vector of palette numbers (which can range between 1 and 14).
 The names of the vector indicate the corresponding variable.
 See \strong{Palettes} below for more information.}
 
@@ -183,6 +195,11 @@ A single value (with no names) specifies the setting for all variables.
 A logical vector of \code{TRUE} values for named variables is interpreted as
 A logical vector of \code{FALSE} values for named variables is interpreted as
 \code{FALSE} for those variables and \code{TRUE} for all others.}
+
+\item{sortfill}{Sort colors in order of node count?
+When a \code{gradient} fill is used, this results in
+the nodes with the smallest counts having the lightest shades
+and the nodes with the largest counts having the darkest shades.}
 
 \item{singlecolor}{When a variable has a single value,
 this parameter is used to specify whether nodes should have a
@@ -242,10 +259,12 @@ This controls two Graphviz parameters: \code{margin} and \code{nodesep}.}
 
 \item{shownodelabels}{Show node labels?
 A single value (with no names) specifies the setting for all variables.
-A logical vector of \code{TRUE} values for named variables is interpreted as
-\code{TRUE} for those variables and \code{FALSE} for all others.
-A logical vector of \code{FALSE} values for named variables is interpreted as
-\code{FALSE} for those variables and \code{TRUE} for all others.}
+Otherwise, a named logical vector indicates which variables should have their
+node labels shown.
+If the vector consists of only \code{TRUE} values,
+it is interpreted as \code{TRUE} for those variables and \code{FALSE} for all others.
+Similarly, if the vector consists of only \code{FALSE} values, 
+it is interpreted as \code{FALSE} for those variables and \code{TRUE} for all others.}
 
 \item{showvarnames}{Show the name of the variable next to each level of the tree?}
 
@@ -269,6 +288,10 @@ A logical vector of \code{FALSE} for named variables is interpreted as
 
 \item{varnamepointsize}{Font size (in points) to use when displaying variable names.}
 
+\item{varnamebold}{Show the variable name in bold?}
+
+\item{legendpointsize}{Font size (in points) to use when displaying legend.}
+
 \item{HTMLtext}{Is the text formatted in HTML?}
 
 \item{digits}{Number of decimal digits to show in percentages.}
@@ -278,7 +301,10 @@ A logical vector of \code{FALSE} for named variables is interpreted as
 \item{splitwidth}{The minimum number of characters before an automatic
 linebreak is inserted.}
 
-\item{lsplitwidth}{In legends, the minimum number of characters before an automatic
+\item{vsplitwidth}{In variable names, the minimum number of characters before an automatic
+linebreak is inserted.}
+
+\item{lsplitwidth}{(Deprecated) In legends, the minimum number of characters before an automatic
 linebreak is inserted.}
 
 \item{getscript}{Instead of displaying the variable tree,
@@ -304,12 +330,7 @@ show percentages of the total number of observations.}
 (i.e. parent node on the left, with the tree growing to the right)}
 
 \item{summary}{A character string used to specify summary statistics to display in the nodes.
-The first word in the character string is the name of the variable to be summarized.
-The rest of the character string is the text that will be displayed,
-along with special codes specifying the information to display
-(see \strong{Summary codes} below).
-A vector of character strings can also be specified,
-if more than one variable is to be summarized.}
+See \strong{Displaying summary information} below for details.}
 
 \item{runsummary}{A list of functions, with the same length as \code{summary}.
 Each function must take a data frame as its sole argument,
@@ -383,11 +404,21 @@ when called during knit}
 \item{maxNodes}{An error occurs if the number of nodes exceeds \code{maxNodes},
 which defaults to 1000.}
 
+\item{unchecked}{Vector of string values interpreted as "unchecked".}
+
+\item{checked}{Vector of string values interpreted as "checked".}
+
+\item{just}{Text justification ("l"=left, "c"=center, "r"=right).}
+
+\item{verbose}{Report additional details?}
+
 \item{parent}{Parent node number (Internal use only.)}
 
 \item{last}{Last node number (Internal use only.)}
 
 \item{root}{Is this the root node of the tree? (Internal use only.)}
+
+\item{subset}{A vector representing the subset of observations. (Internal use only.)}
 }
 \value{
 The value returned by \code{vtree} varies
@@ -430,6 +461,23 @@ If knitting \emph{is} taking place:
 Variable trees display information about nested subsets of a data frame,
 in which the subsetting is defined by the values of categorical variables.
 }
+\section{Nested list returned as the `info` attribute}{
+
+\itemize{
+  \item The top level of the list represents the root node.
+        Within this list is a list named after the first variable in the tree.
+  \item In turn, within this list are lists named after the observed
+        values of that variable.
+  \item In turn, each of these lists is an element named after
+        the next variable in the tree.
+  \item And so on ...
+}
+The root element as well as each list element named after a value of a variable also 
+contains elements \code{.n} (representing the number of observations),
+\code{.pct} (representing the percentage), and
+\code{.txt} (representing additional text such as summaries).
+}
+
 \section{R Markdown}{
 
 As noted in the \strong{Value} section above,
@@ -455,19 +503,41 @@ are named \code{vtree1.png}, \code{vtree2.png}, etc.
 (A custom option \code{vtree_count} is used to automatically keep track of the number of PNG files.)
 }
 
+\section{Displaying summary information}{
+
+The \code{summary} parameter allows you to specify information to display
+in each node. The parameter can be specified as a vector of character strings,
+where each element represents a different variable to summarize.
+When an element of \code{summary} is specified as a single variable name, 
+the following default set of summary statistics is shown:
+the variable name, number of missing values, mean and standard deviation,
+median and interquartile range and range.
+A customized summary is shown when an element of \code{summary}
+is specified as a character string with the following structure:
+\itemize{
+  \item{First, the name of the variable for which a summary is desired.}
+  \item{Next a space.}
+  \item{The remainder of the string specifies what to display, with text as well as special codes (see \strong{Summary codes} below) to indicate the type of summary desired and to control which nodes display the summary, etc.}
+}
+}
+
 \section{Summary codes}{
 
 \itemize{
- \item{\code{\%mean\%} }{mean}
- \item{\code{\%SD\%} }{standard deviation}
- \item{\code{\%sum\%} }{sum}
- \item{\code{\%min\%} }{minimum}
- \item{\code{\%max\%} }{maximum}
+ \item{\code{\%mean\%} }{mean. Variant \code{\%meanx\%} does not report missing values.}
+ \item{\code{\%SD\%} }{standard deviation. Variant \code{\%SDx\%} does not report missing values.}
+ \item{\code{\%sum\%} }{sum. Variant \code{\%sumx\%} does not report missing values.}
+ \item{\code{\%min\%} }{minimum. Variant \code{\%minx\%} does not report missing values.}
+ \item{\code{\%max\%} }{maximum. Variant \code{\%maxx\%} does not report missing values.}
+ \item{\code{\%range\%} }{range. Variant \code{\%rangex\%} does not report missing values.}
  \item{\code{\%pX\%} }{Xth percentile, e.g. p50 means the 50th percentile}
- \item{\code{\%median\%} }{median, i.e. p50}
- \item{\code{\%IQR\%} }{interquartile range, i.e. p25, p75}
+ \item{\code{\%median\%} }{median. Variant \code{\%medianx\%} does not report missing values.}
+ \item{\code{\%IQR\%} }{interquartile range. Variant \code{\%IQRx\%} does not report missing values.}
  \item{\code{\%npct\%} }{number and percentage of \code{TRUE} values}
- \item{\code{\%list\%} }{list of the individual values}
+ \item{\code{\%pct\%} }{percentage of \code{TRUE} values}
+ \item{\code{\%freqpct\%} }{frequency and percentage of values of a variable. Variant \code{\%freqpct_\%} shows each value on a separate line }
+ \item{\code{\%freq\%} }{frequency of values of a variable. Variant \code{\%freq_\%} shows each value on a separate line}
+ \item{\code{\%list\%} }{list of the individual values. Variant \code{\%list_\%} shows each value on a separate line}
  \item{\code{\%mv\%} }{the number of missing values}
  \item{\code{\%nonmv\%} }{the number of non-missing values}
  \item{\code{\%v\%} }{the name of the variable}
@@ -495,17 +565,15 @@ Also used by \code{labelnode} and \code{labelvar}.
 
 \section{Palettes}{
 
-Sequential palettes from Color Brewer:
-\enumerate{
- \item{Reds}
- \item{Blues}
- \item{Greens}
- \item{Oranges}
- \item{Purples}
- \item{YlGn}
- \item{PuBu}
- \item{PuRd}
- \item{YlOrBr}
+
+The following palettes
+(obtained from \code{RColorBrewer}) are used in the order indicated:
+
+\tabular{rlcrlcrlcrl}{
+ 1 \tab Reds     \tab \tab 5 \tab Purples  \tab \tab 9  \tab YlOrBr \tab \tab 13 \tab RdYlGn \cr
+ 2 \tab Blues    \tab \tab 6 \tab YlGn     \tab \tab 10 \tab PuBuGn \tab \tab 14 \tab Set1 \cr 
+ 3 \tab Greens   \tab \tab 7 \tab PuBu     \tab \tab 11 \tab BuPu   \tab \tab    \tab \cr
+ 4 \tab Oranges  \tab \tab 8 \tab PuRd     \tab \tab 12 \tab YlOrRd \tab \tab    \tab \cr
 }
 }
 
