@@ -88,6 +88,10 @@ df <- build.data.frame(
 #      c(Group="B",text="\nNorway")))
 
 ## ----eval=FALSE-------------------------------------------------------------------------
+#  library(dplyr)
+#  FakeData %>% mutate(missingScore=is.na(Score)) %>% vtree("missingScore")
+
+## ----eval=FALSE-------------------------------------------------------------------------
 #  vtree(FakeData,"is.na:Score")
 
 ## ----eval=FALSE-------------------------------------------------------------------------
@@ -114,8 +118,8 @@ cat(info$Severity$Mild$.text)
 #  vtree(FakeData,"Severity",summary="Ind*",sameline=TRUE,horiz=FALSE,just="l")
 
 ## ---- eval=FALSE------------------------------------------------------------------------
-#  vtree(FakeData,"Severity Category",summary="Score<10 %var=Category%%node=triple%",
-#    sameline=TRUE)
+#  vtree(FakeData,"Severity Category",summary="Score<10 %var=Category%%node=single%",
+#    sameline=TRUE, showlegend=TRUE, showlegendsum=TRUE)
 
 ## ----eval=FALSE-------------------------------------------------------------------------
 #  vtree(FakeData,"Severity",summary="Score \nmean score\n%mean%",sameline=TRUE,horiz=FALSE)
@@ -176,6 +180,7 @@ dessert <- build.data.frame(
   list("A",     1,             0,             0,              7),
   list("A",     1,             0,             1,              2),
   list("A",     0,             0,             0,              1),
+  list("A",     1,             1,             1,              1),
   list("B",     1,             0,             1,              1),
   list("B",     1,             0,             0,              2), 
   list("B",     0,             1,             1,              1),
@@ -191,7 +196,7 @@ attr(dessert$IceCream___3,"label") <- "Ice cream (choice=Strawberry)"
 #  vtree(dessert,"r:IceCream@")
 
 ## ----eval=FALSE-------------------------------------------------------------------------
-#  vtree(dessert,"rany:IceCream@")
+#  vtree(dessert,"rnone:IceCream@")
 
 ## ----eval=FALSE-------------------------------------------------------------------------
 #  vtree(dessert,"ri:IceCream@")
