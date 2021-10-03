@@ -55,6 +55,12 @@ df <- build.data.frame(
 ## ----eval=FALSE-------------------------------------------------------------------------
 #  vtree(FakeData,"Severity Sex",prunebelow=list(Severity=c("Mild","Moderate")))
 
+## ----eval=FALSE-------------------------------------------------------------------------
+#  vtree(FakeData,"Sex Severity",tkeep=list(list(Sex="M",Severity="Moderate")))
+
+## ---- eval=FALSE------------------------------------------------------------------------
+#  tkeep=list(list(Sex="M",Severity=c("Moderate","Severe")),list(Sex=F",Severity="Mild"))
+
 ## ---- eval=FALSE------------------------------------------------------------------------
 #  vtree(FakeData,"Severity Sex Age Category",sameline=TRUE)
 
@@ -100,7 +106,7 @@ df <- build.data.frame(
 ## ----eval=FALSE-------------------------------------------------------------------------
 #  vtree(FakeData,"Severity",summary="Score",horiz=FALSE)
 
-## ---------------------------------------------------------------------------------------
+## ----attributes-------------------------------------------------------------------------
 vSeverity <- vtree(FakeData,"Severity",summary="Score",horiz=FALSE)
 info <- attributes(vSeverity)$info
 cat(info$Severity$Mild$.text)
@@ -114,7 +120,7 @@ cat(info$Severity$Mild$.text)
 ## ----eval=FALSE-------------------------------------------------------------------------
 #  vtree(FakeData,"Severity",summary="Category=single",horiz=FALSE)
 
-## ----eval=FALSE-------------------------------------------------------------------------
+## ----summary-pattern,eval=FALSE---------------------------------------------------------
 #  vtree(FakeData,"Severity",summary="Ind*",sameline=TRUE,horiz=FALSE,just="l")
 
 ## ---- eval=FALSE------------------------------------------------------------------------
@@ -131,6 +137,9 @@ cat(info$Severity$Mild$.text)
 ## ----eval=FALSE-------------------------------------------------------------------------
 #  vtree(FakeData,"Severity",horiz=FALSE,showvarnames=FALSE,splitwidth=Inf,sameline=TRUE,
 #    summary=c("Score \nScore: mean (SD) %meanx% (%SD%)","Pre \nPre: range %range%"))
+
+## ----eval=FALSE-------------------------------------------------------------------------
+#  vtree(FakeData,"Age Sex",tsummary=list(list(Age="5",Sex="M","id \n%list%")),horiz=FALSE)
 
 ## ---- eval=FALSE------------------------------------------------------------------------
 #  vtree(FakeData,"Severity Sex")
@@ -218,11 +227,11 @@ dotscript <- vtree(FakeData,"Severity",getscript=TRUE)
 cat(dotscript)
 
 ## ----echo=TRUE,message=FALSE,eval=FALSE-------------------------------------------------
-#  v <- vtree(FakeData,"Group Viral")
+#  v <- vtree(FakeData,"Group Viral",horiz=FALSE)
 #  v
 
 ## ----echo=FALSE,message=FALSE-----------------------------------------------------------
-v <- vtree(FakeData,"Group Viral",pxwidth=300,imageheight="2.5in")
+v <- vtree(FakeData,"Group Viral",pxwidth=800,imageheight="2in",horiz=FALSE)
 v
 
 ## ----echo=TRUE,message=FALSE------------------------------------------------------------
