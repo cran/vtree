@@ -18,6 +18,9 @@ df <- build.data.frame(
   list("Africa","Under 30 million","landlocked",14),
   list("Africa","Under 30 million","not landlocked",26))
 
+## ---------------------------------------------------------------------------------------
+plot(0)
+
 ## ---- eval=FALSE------------------------------------------------------------------------
 #  vtree(df,"v1 v2")
 

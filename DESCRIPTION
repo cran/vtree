@@ -1,13 +1,12 @@
 Package: vtree
 Type: Package
 Title: Display Information About Nested Subsets of a Data Frame
-Version: 5.4.6
+Version: 5.6.4
 Depends: R (>= 2.10)
-Author: 
-  Nick Barrowman [aut, cre]
-  Sebastian Gatscha <kona1@gmx.at> [aut] (Shiny interface)
-  Franco Momoli <fmomoli@uottawa.ca> [cph] (the.matrix data frame)
-Maintainer: Nick Barrowman <nbarrowman@cheo.on.ca>
+Authors@R: c(
+  person("Nick","Barrowman","","nbarrowman@cheo.on.ca",role=c("aut","cre")),
+  person("Sebastian","Gatscha","","kona1@gmx.at",role="aut"),
+  person("Franco","Momoli","","fmomoli@uottawa.ca",role="cph"))
 Description: A tool for calculating and drawing "variable trees". Variable trees display information about nested subsets of a data frame.
 License: GPL-3
 URL: https://github.com/nbarrowman/vtree,
@@ -15,11 +14,15 @@ URL: https://github.com/nbarrowman/vtree,
 BugReports: https://github.com/nbarrowman/vtree/issues
 Encoding: UTF-8
 LazyData: true
-RoxygenNote: 7.1.1
+RoxygenNote: 7.2.2
 VignetteBuilder: knitr
 Suggests: knitr, rmarkdown, ggplot2, testthat (>= 2.1.0)
-Imports: DiagrammeR, DiagrammeRsvg, rsvg, htmlwidgets, shiny
+Imports: DiagrammeR, DiagrammeRsvg, rsvg, htmlwidgets, shiny, utf8
 NeedsCompilation: no
-Packaged: 2021-10-03 17:58:42 UTC; nickb
+Packaged: 2022-11-24 01:28:42 UTC; nickb
 Repository: CRAN
-Date/Publication: 2021-10-03 18:30:02 UTC
+Date/Publication: 2022-11-24 03:30:02 UTC
+Author: Nick Barrowman [aut, cre],
+  Sebastian Gatscha [aut],
+  Franco Momoli [cph]
+Maintainer: Nick Barrowman <nbarrowman@cheo.on.ca>

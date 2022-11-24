@@ -1,0 +1,113 @@
+$progress
+[1] TRUE
+
+$verbose
+[1] FALSE
+
+$eval.after
+[1] "fig.cap"  "fig.scap" "fig.alt" 
+
+$base.dir
+NULL
+
+$base.url
+NULL
+
+$root.dir
+NULL
+
+$child.path
+[1] ""
+
+$upload.fun
+function (x) 
+x
+<bytecode: 0x000001686627f498>
+<environment: namespace:base>
+
+$global.device
+[1] FALSE
+
+$global.par
+[1] FALSE
+
+$concordance
+[1] FALSE
+
+$documentation
+[1] 1
+
+$self.contained
+[1] TRUE
+
+$unnamed.chunk.label
+[1] "unnamed-chunk"
+
+$highr.opts
+NULL
+
+$label.prefix
+ table 
+"tab:" 
+
+$latex.tilde
+NULL
+
+$out.format
+[1] "markdown"
+
+$child
+[1] FALSE
+
+$parent
+[1] FALSE
+
+$tangle
+[1] FALSE
+
+$aliases
+NULL
+
+$header
+highlight      tikz    framed 
+       ""        ""        "" 
+
+$global.pars
+NULL
+
+$rmarkdown.pandoc.from
+[1] "markdown+autolink_bare_uris+tex_math_single_backslash"
+
+$rmarkdown.pandoc.to
+[1] "html"
+
+$rmarkdown.pandoc.args
+ [1] "--self-contained"                                                                      
+ [2] "--standalone"                                                                          
+ [3] "--section-divs"                                                                        
+ [4] "--table-of-contents"                                                                   
+ [5] "--toc-depth"                                                                           
+ [6] "2"                                                                                     
+ [7] "--template"                                                                            
+ [8] "C:\\Users\\nickb\\AppData\\Local\\R\\win-library\\4.2\\rmarkdown\\rmd\\h\\default.html"
+ [9] "--highlight-style"                                                                     
+[10] "pygments"                                                                              
+
+$rmarkdown.pandoc.id_prefix
+[1] ""
+
+$rmarkdown.keep_md
+[1] FALSE
+
+$rmarkdown.df_print
+[1] "default"
+
+$rmarkdown.version
+[1] 2
+
+$rmarkdown.runtime
+[1] "static"
+
+$output.dir
+[1] "C:/Users/nickb/Documents/vtree/vignettes"
+
