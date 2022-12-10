@@ -282,7 +282,11 @@ FakeRCT
 #    summary="id \nid: %list% %noroot%")
 
 ## ---- eval=FALSE------------------------------------------------------------------------
-#  vtree(esoph,"agegp=75+",sameline=TRUE,cdigits=0,
+#  # Relabel agegp 75+ to 75plus because vtree tries to parse the +
+#  ESOPH <- esoph
+#  levels(ESOPH$agegp)[levels(ESOPH$agegp)=="75+"] <- "75plus"
+#  
+#  vtree(ESOPH,"agegp=75plus",sameline=TRUE,cdigits=0,
 #    summary=c("ncases \ncases=%sum%%leafonly%","ncontrols  controls=%sum%%leafonly%"))
 
 ## ---- eval=FALSE------------------------------------------------------------------------
