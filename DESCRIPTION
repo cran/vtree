@@ -1,27 +1,27 @@
 Package: vtree
 Type: Package
 Title: Display Information About Nested Subsets of a Data Frame
-Version: 5.6.5
+Version: 5.7.0
 Depends: R (>= 2.10)
 Authors@R: c(
   person("Nick","Barrowman","","nbarrowman@cheo.on.ca",role=c("aut","cre")),
   person("Sebastian","Gatscha","","kona1@gmx.at",role="aut"),
   person("Franco","Momoli","","fmomoli@uottawa.ca",role="cph"))
-Description: A tool for calculating and drawing "variable trees". Variable trees display information about nested subsets of a data frame.
+Description: A tool for calculating and drawing "variable trees". Variable trees display information about nested subsets of a data frame. <doi:10.18637/jss.v114.i04>.
 License: GPL-3
 URL: https://github.com/nbarrowman/vtree,
         https://nbarrowman.github.io/vtree
 BugReports: https://github.com/nbarrowman/vtree/issues
 Encoding: UTF-8
 LazyData: true
-RoxygenNote: 7.2.2
+RoxygenNote: 7.3.2
 VignetteBuilder: knitr
-Suggests: knitr, rmarkdown, ggplot2, testthat (>= 2.1.0)
+Suggests: knitr, rmarkdown, ggplot2, testthat
 Imports: DiagrammeR, DiagrammeRsvg, rsvg, htmlwidgets, shiny, utf8
 NeedsCompilation: no
-Packaged: 2022-12-10 19:15:32 UTC; nickb
+Packaged: 2025-09-13 01:44:52 UTC; rstudio
 Repository: CRAN
-Date/Publication: 2022-12-10 19:30:02 UTC
+Date/Publication: 2025-09-13 22:40:02 UTC
 Author: Nick Barrowman [aut, cre],
   Sebastian Gatscha [aut],
   Franco Momoli [cph]

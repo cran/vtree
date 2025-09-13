@@ -536,6 +536,9 @@ vtree(FakeData,"Severity Sex",ttext=list(
   c(Severity="NA",text="\nUnknown severity")))
 
 }
+\references{
+Barrowman N, Webster RJ (2025). “Exploring Data Subsets with vtree.” \emph{Journal of Statistical Software}, \strong{114}(4), 1-28. <doi:10.18637/jss.v114.i04>.
+}
 \seealso{
 \href{../doc/vtree.html}{\code{vignette("vtree")}}
 }

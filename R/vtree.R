@@ -24,11 +24,8 @@
 #'   \item Report bugs at \url{https://github.com/nbarrowman/vtree/issues}
 #' }
 #' 
-#' @docType package
-#' @name vtree-package
-NULL 
-
-
+"_PACKAGE"
+ 
 
 #'
 #' Draw a variable tree
@@ -474,6 +471,9 @@ NULL
 #' vtree(FakeData,"Severity Sex",ttext=list(
 #'   c(Severity="Severe",Sex="M",text="\nMales with Severe disease"),
 #'   c(Severity="NA",text="\nUnknown severity")))
+#'
+#' @references
+#' Barrowman N, Webster RJ (2025). “Exploring Data Subsets with vtree.” \emph{Journal of Statistical Software}, \strong{114}(4), 1-28. <doi:10.18637/jss.v114.i04>.
 #'
 #' @importFrom utils capture.output
 #'
@@ -1727,7 +1727,7 @@ vtree <- function (
 
     if (length(labelvar) > 0) {
         namesvarheaders <- names(labelvar)
-        labelvar <- splitlines(labelvar, splitwidth, sp = sepN, at = c(" ", ".", "-", "+", "_", "=", "/"))
+        labelvar <- splitlines(labelvar, vsplitwidth, sp = sepN, at = c(" ", ".", "-", "+", "_", "=", "/"))
         names(labelvar) <- namesvarheaders
     }
     

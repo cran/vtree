@@ -1,0 +1,16 @@
+bibentry(bibtype = "Article",
+  title        = "Exploring Data Subsets with {vtree}",
+  author       = c(person(given = "Nick",
+                          family = "Barrowman",
+                          email = "nick.barrowman@gmail.com"),
+                   person(given = c("Richard", "J."),
+                          family = "Webster")),
+  journal      = "Journal of Statistical Software",
+  year         = "2025",
+  volume       = "114",
+  number       = "4",
+  pages        = "1--28",
+  doi          = "10.18637/jss.v114.i04",
+  header       = "To cite vtree in publications use:"
+)
+
